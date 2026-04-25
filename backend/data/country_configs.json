@@ -1,0 +1,70 @@
+{
+  "GHA": {
+    "name": "Ghana",
+    "iso2": "GH",
+    "region": "Sub-Saharan Africa",
+    "economy_type": "lower-middle income, urban informal",
+    "lmic_calibration_factor": 0.68,
+    "calibration_note": "Strong informal economy, limited automation infrastructure penetration, mobile-first digital economy",
+    "context_note": "Ghana has a rapidly growing fintech sector and high mobile penetration (>80%). Repair, solar, and digital services are growth sectors. NEET rate remains high at ~28%.",
+    "opportunity_types": ["self-employment", "gig", "informal_sme", "training_pathways"],
+    "wittgenstein_secondary_2025": "41%",
+    "wittgenstein_secondary_2035": "58%",
+    "fallback_econdata": {
+      "youth_unemployment": "12.1%",
+      "gdp_per_capita": "$2,363",
+      "secondary_completion": "68.3%"
+    }
+  },
+  "PAK": {
+    "name": "Pakistan",
+    "iso2": "PK",
+    "region": "South Asia",
+    "economy_type": "lower-middle income, mixed urban-rural",
+    "lmic_calibration_factor": 0.62,
+    "calibration_note": "Large informal sector, growing IT freelance economy, significant rural-urban divide in automation exposure",
+    "context_note": "Pakistan has one of the world's largest freelance IT workforces. Manufacturing and agriculture face higher automation risk than services. Gender gap in formal labor market participation is significant.",
+    "opportunity_types": ["freelance_remote", "formal_employment", "self-employment", "training_pathways"],
+    "wittgenstein_secondary_2025": "38%",
+    "wittgenstein_secondary_2035": "54%",
+    "fallback_econdata": {
+      "youth_unemployment": "7.8%",
+      "gdp_per_capita": "$1,598",
+      "secondary_completion": "44.1%"
+    }
+  },
+  "KEN": {
+    "name": "Kenya",
+    "iso2": "KE",
+    "region": "Sub-Saharan Africa",
+    "economy_type": "lower-middle income, strong tech hub",
+    "lmic_calibration_factor": 0.71,
+    "calibration_note": "Nairobi is a regional tech hub; formal sector more exposed to automation than rural hinterland",
+    "context_note": "Kenya has Africa's most sophisticated fintech ecosystem (M-Pesa). Digital skills command significant wage premium. Agricultural automation risk is rising.",
+    "opportunity_types": ["gig", "formal_employment", "digital_freelance", "training_pathways"],
+    "wittgenstein_secondary_2025": "44%",
+    "wittgenstein_secondary_2035": "61%",
+    "fallback_econdata": {
+      "youth_unemployment": "13.7%",
+      "gdp_per_capita": "$2,081",
+      "secondary_completion": "72.1%"
+    }
+  },
+  "BGD": {
+    "name": "Bangladesh",
+    "iso2": "BD",
+    "region": "South Asia",
+    "economy_type": "lower-middle income, garment-sector dependent",
+    "lmic_calibration_factor": 0.59,
+    "calibration_note": "Garment sector faces high automation risk. Digital sector growing rapidly. Rural agricultural workers face longer-term but real displacement.",
+    "context_note": "Bangladesh's RMG sector employs ~4 million workers (80% women) and faces measurable automation risk from robotic sewing systems. Digital upskilling is a national priority.",
+    "opportunity_types": ["formal_employment", "self-employment", "training_pathways"],
+    "wittgenstein_secondary_2025": "43%",
+    "wittgenstein_secondary_2035": "59%",
+    "fallback_econdata": {
+      "youth_unemployment": "10.6%",
+      "gdp_per_capita": "$2,688",
+      "secondary_completion": "66.7%"
+    }
+  }
+}
