@@ -1,4 +1,6 @@
 import { COUNTRIES } from "../config/countries";
+import { getCopy } from "../config/locales";
+import { useProfile } from "../hooks/useProfile";
 
 
 export default function CountrySelector({
@@ -9,21 +11,24 @@ export default function CountrySelector({
   subtitle = "Switching country updates calibration, API payloads, and live labor market signals without code changes.",
   eyebrow = "",
 }) {
+  const { draft } = useProfile();
+  const copy = getCopy(draft.ui_locale);
+
   if (compact) {
     return (
-      <div className="compact-country-strip" aria-label="Country selector">
-        {COUNTRIES.map((country) => (
-          <button
-            key={country.code}
-            className={country.code === selectedCountry ? "compact-country is-active" : "compact-country"}
-            type="button"
-            onClick={() => onSelect(country.code)}
-          >
-            <span>{country.flag}</span>
-            <span>{country.name}</span>
-          </button>
-        ))}
-      </div>
+      <label className="toolbar-field">
+        <span>{copy.reviewCountryLabel}</span>
+        <select className="input toolbar-input" value={selectedCountry} onChange={(event) => onSelect(event.target.value)}>
+          <option value="" disabled>
+            {copy.reviewCountryLabel}
+          </option>
+          {COUNTRIES.map((country) => (
+            <option key={country.code} value={country.code}>
+              {country.name}
+            </option>
+          ))}
+        </select>
+      </label>
     );
   }
 

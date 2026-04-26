@@ -4,8 +4,8 @@ function findSignal(signals, indicatorId) {
 
 function formatStatusRow({ live, primaryLabel, liveText, cachedText, meta }) {
   return {
-    icon: live ? "✓" : "⚠",
-    primary: live ? `${primaryLabel} — ${liveText}` : `${primaryLabel} — ${cachedText}`,
+    icon: live ? "\u2713" : "\u26A0",
+    primary: live ? `${primaryLabel} - ${liveText}` : `${primaryLabel} - ${cachedText}`,
     meta,
   };
 }
@@ -25,25 +25,25 @@ export default function DataTransparencyPanel({ readiness, econData, countryName
     formatStatusRow({
       live,
       primaryLabel: "ILO ILOSTAT",
-      liveText: `Youth unemployment ${youth?.value || "Unavailable"} — fetched live`,
-      cachedText: `Cached data used (API unavailable)`,
-      meta: `[${fetchedDate} · SDG_0851]`,
+      liveText: `Youth unemployment ${youth?.value || "Unavailable"} - fetched live`,
+      cachedText: "Cached data used (API unavailable)",
+      meta: `[${fetchedDate} - SDG_0851]`,
     }),
     formatStatusRow({
       live,
       primaryLabel: "World Bank WDI",
-      liveText: `GDP per capita ${gdp?.value || "Unavailable"} — fetched live`,
-      cachedText: `Cached data used (API unavailable)`,
-      meta: `[${fetchedDate} · NY.GDP.PCAP.CD]`,
+      liveText: `GDP per capita ${gdp?.value || "Unavailable"} - fetched live`,
+      cachedText: "Cached data used (API unavailable)",
+      meta: `[${fetchedDate} - NY.GDP.PCAP.CD]`,
     }),
     {
-      icon: "✓",
-      primary: `Frey-Osborne Dataset — Automation probability ${readiness?.automation_probability_raw?.toFixed(2) || "0.00"} raw`,
-      meta: "[static · 2013 Oxford study]",
+      icon: "\u2713",
+      primary: `Frey-Osborne Dataset - Automation probability ${readiness?.automation_probability_raw?.toFixed(2) || "0.00"} raw`,
+      meta: "[static - 2013 Oxford study]",
     },
     {
-      icon: "✓",
-      primary: `LMIC Calibration — ${factor} factor applied for ${countryName} context`,
+      icon: "\u2713",
+      primary: `LMIC Calibration - ${factor} factor applied for ${countryName} context`,
       meta: "",
     },
   ];

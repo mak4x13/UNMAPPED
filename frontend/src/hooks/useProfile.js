@@ -7,15 +7,16 @@ import { getLocaleLabel, resolveSupportedLocale, resolveSupportedVoiceLocale } f
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:7860";
 
 const STORAGE_KEY = "unmapped-profile-state";
+const STORAGE_VERSION = 3;
 const ProfileContext = createContext(null);
 
 const defaultDraft = {
-  country_code: "GHA",
-  education_level: "secondary",
-  years_experience: 5,
+  country_code: "",
+  education_level: "",
+  years_experience: "",
   informal_description: "",
-  languages: ["English"],
-  age: 22,
+  languages: [],
+  age: "",
   ui_locale: "en",
   voice_locale: "en",
   assisted_mode: false,
@@ -28,10 +29,23 @@ function loadStoredState() {
   }
 
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
+    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}");
+    if (parsed.version !== STORAGE_VERSION) {
+      return {};
+    }
+    return parsed;
   } catch {
     return {};
   }
+}
+
+function serializeDraft(draft, overrides = {}) {
+  const merged = { ...draft, ...overrides };
+  return {
+    ...merged,
+    age: Number(merged.age),
+    years_experience: Number(merged.years_experience),
+  };
 }
 
 
@@ -55,6 +69,7 @@ export function ProfileProvider({ children }) {
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
+        version: STORAGE_VERSION,
         draft,
         profile,
         econData,
@@ -65,6 +80,9 @@ export function ProfileProvider({ children }) {
   }, [draft, profile, econData, opportunities, interview]);
 
   async function loadEconData(countryCode = draft.country_code) {
+    if (!countryCode) {
+      return null;
+    }
     setLoadingEcon(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/api/econdata/${countryCode}`);
@@ -79,6 +97,9 @@ export function ProfileProvider({ children }) {
   }
 
   async function loadOpportunities(countryCode = draft.country_code, iscoUnitCode = profile?.isco_unit_code) {
+    if (!countryCode || !iscoUnitCode) {
+      return null;
+    }
     setLoadingOpportunities(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/api/opportunities`, {
@@ -107,8 +128,7 @@ export function ProfileProvider({ children }) {
 
   async function generateInterview(overrides = {}) {
     const payload = {
-      ...draft,
-      ...overrides,
+      ...serializeDraft(draft, overrides),
       ui_language_label: getLocaleLabel((overrides.ui_locale || draft.ui_locale)),
     };
     setDraft((current) => ({ ...current, ...overrides }));
@@ -131,8 +151,7 @@ export function ProfileProvider({ children }) {
 
   async function generateProfile(overrides = {}) {
     const payload = {
-      ...draft,
-      ...overrides,
+      ...serializeDraft(draft, overrides),
       ui_language_label: getLocaleLabel(overrides.ui_locale || draft.ui_locale),
       follow_up_answers: buildFollowUpAnswers(),
     };
@@ -179,6 +198,7 @@ export function ProfileProvider({ children }) {
     setEconData(null);
     setOpportunities(null);
     setInterview(null);
+    setError(null);
   }
 
   function setUiLocale(localeCode) {
@@ -205,6 +225,9 @@ export function ProfileProvider({ children }) {
   }
 
   useEffect(() => {
+    if (!draft.country_code) {
+      return undefined;
+    }
     let active = true;
     async function hydrateCountryContext() {
       const data = await loadEconData(draft.country_code);

@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
+import { COUNTRIES } from "../config/countries";
+import { useProfile } from "../hooks/useProfile";
 
-const IMPACT_STATS = [
+const INFORMAL_CONTEXT = {
+  GHA: 80,
+  PAK: 70,
+  KEN: 83,
+  BGD: 85,
+};
+
+const BASE_STATS = [
   {
     value: 600,
     suffix: "M+",
@@ -9,16 +18,10 @@ const IMPACT_STATS = [
     source: "ILO reference",
   },
   {
-    value: 70,
-    suffix: "%",
-    label: "Of Pakistan's workforce is in the informal sector",
-    source: "Country estimate",
-  },
-  {
     value: 0,
     suffix: "",
-    label: "Formal records exist for most of them",
-    source: "Platform framing",
+    label: "Formal records capture most of that work",
+    source: "Reality check",
   },
 ];
 
@@ -71,6 +74,17 @@ function ImpactStat({ stat, active }) {
 export default function ImpactStatStrip() {
   const containerRef = useRef(null);
   const [active, setActive] = useState(false);
+  const { draft } = useProfile();
+  const country = COUNTRIES.find((entry) => entry.code === draft.country_code);
+  const contextStat = {
+    value: INFORMAL_CONTEXT[draft.country_code] || 70,
+    suffix: "%",
+    label: country
+      ? `Of ${country.name}'s workforce is estimated to work informally`
+      : "Of many LMIC workforces, a large share works informally",
+    source: "Context estimate",
+  };
+  const impactStats = [BASE_STATS[0], contextStat, BASE_STATS[1]];
 
   useEffect(() => {
     const node = containerRef.current;
@@ -94,7 +108,7 @@ export default function ImpactStatStrip() {
 
   return (
     <section className="impact-strip" ref={containerRef}>
-      {IMPACT_STATS.map((stat) => (
+      {impactStats.map((stat) => (
         <ImpactStat key={stat.label} stat={stat} active={active} />
       ))}
     </section>

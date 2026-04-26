@@ -30,7 +30,7 @@ export default function ProfilePage() {
       <SkillsProfile profile={profile} econData={econData} loadingEcon={loadingEcon} />
       <ProfileExportCard profile={profile} countryCode={draft.country_code} />
       <SectionDivider label="NEXT STEP" />
-      <section className="section-card section-inline">
+      <section className="section-card profile-next-card">
         <div>
           <p className="eyebrow">{copy.nextStepEyebrow}</p>
           <h3>{copy.profileNextTitle}</h3>

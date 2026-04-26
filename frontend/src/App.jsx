@@ -13,11 +13,27 @@ import ReadinessPage from "./pages/ReadinessPage";
 
 function AppHeader() {
   const { pathname } = useLocation();
-  const { draft, setCountryCode, resetJourney } = useProfile();
+  const { draft, interview, profile, setCountryCode, resetJourney } = useProfile();
   const { clearReadiness } = useReadiness();
   const copy = getCopy(draft.ui_locale);
   const youthViewActive = pathname !== "/policy";
-  const homeView = pathname === "/";
+  const showCountryToolbar = youthViewActive && pathname !== "/";
+  const showLanguageToolbar = youthViewActive && (pathname !== "/" || Boolean(draft.country_code));
+  const hasJourneyState = Boolean(
+    draft.country_code ||
+      draft.education_level ||
+      draft.informal_description ||
+      draft.languages.length ||
+      draft.age ||
+      draft.years_experience ||
+      interview ||
+      profile,
+  );
+
+  function handleCountryChange(countryCode) {
+    setCountryCode(countryCode);
+    clearReadiness();
+  }
 
   return (
     <header className="topbar">
@@ -26,7 +42,6 @@ function AppHeader() {
         <div>
           <p className="eyebrow">{copy.brandEyebrow}</p>
           <h1 className="brand-title">UNMAPPED</h1>
-          <p className="brand-note">{copy.brandNote}</p>
         </div>
       </div>
 
@@ -40,18 +55,21 @@ function AppHeader() {
       </nav>
 
       <div className="header-actions">
-        {youthViewActive && !homeView ? <CountrySelector compact selectedCountry={draft.country_code} onSelect={setCountryCode} /> : null}
-        {youthViewActive ? <LanguageSwitcher compact /> : <p className="header-note">{copy.headerNotePolicy}</p>}
-        <button
-          className="button button-ghost"
-          type="button"
-          onClick={() => {
-            resetJourney();
-            clearReadiness();
-          }}
-        >
-          {copy.resetJourney}
-        </button>
+        {showCountryToolbar ? <CountrySelector compact selectedCountry={draft.country_code} onSelect={handleCountryChange} /> : null}
+        {showLanguageToolbar ? <LanguageSwitcher compact /> : null}
+        {!youthViewActive ? <p className="header-note">{copy.headerNotePolicy}</p> : null}
+        {hasJourneyState ? (
+          <button
+            className="button button-ghost toolbar-reset"
+            type="button"
+            onClick={() => {
+              resetJourney();
+              clearReadiness();
+            }}
+          >
+            {copy.resetJourney}
+          </button>
+        ) : null}
       </div>
     </header>
   );

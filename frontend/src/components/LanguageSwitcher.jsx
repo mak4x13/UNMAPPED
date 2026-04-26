@@ -13,7 +13,7 @@ export default function LanguageSwitcher({ compact = false }) {
   const voiceOptions = getCountryVoiceOptions(draft.country_code);
 
   return (
-    <section className={compact ? "language-switcher language-switcher-compact" : "section-card language-switcher"}>
+    <section className={compact ? "language-switcher-compact" : "section-card language-switcher"}>
       {!compact ? (
         <div className="section-header">
           <div>
@@ -25,9 +25,9 @@ export default function LanguageSwitcher({ compact = false }) {
       ) : null}
 
       <div className={compact ? "language-switcher-grid compact" : "language-switcher-grid"}>
-        <label className="field">
+        <label className={compact ? "toolbar-field" : "field"}>
           <span>{copy.platformLanguage}</span>
-          <select className="input" value={draft.ui_locale} onChange={(event) => setUiLocale(event.target.value)}>
+          <select className={compact ? "input toolbar-input" : "input"} value={draft.ui_locale} onChange={(event) => setUiLocale(event.target.value)}>
             {localeOptions.map((option) => (
               <option key={option.code} value={option.code}>
                 {option.label}
@@ -36,9 +36,9 @@ export default function LanguageSwitcher({ compact = false }) {
           </select>
         </label>
 
-        <label className="field">
+        <label className={compact ? "toolbar-field" : "field"}>
           <span>{copy.voiceLanguage}</span>
-          <select className="input" value={draft.voice_locale} onChange={(event) => setVoiceLocale(event.target.value)}>
+          <select className={compact ? "input toolbar-input" : "input"} value={draft.voice_locale} onChange={(event) => setVoiceLocale(event.target.value)}>
             {voiceOptions.map((option) => (
               <option key={option.code} value={option.code}>
                 {option.label}

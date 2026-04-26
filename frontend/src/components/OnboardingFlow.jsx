@@ -1,11 +1,17 @@
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { COUNTRIES } from "../config/countries";
-import { getCopy, getLocaleLabel, getSpeechRecognitionTag, getVoiceLabel } from "../config/locales";
+import { getCopy, getSpeechRecognitionTag } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
 import VoiceInputButton from "./VoiceInputButton";
 
+const LANGUAGE_SUGGESTIONS = {
+  GHA: ["English", "Twi", "Ga", "Ewe"],
+  PAK: ["Urdu", "English", "Punjabi", "Sindhi", "Pashto"],
+  KEN: ["English", "Swahili", "Kikuyu", "Luo"],
+  BGD: ["Bangla", "English", "Chittagonian"],
+};
 
 function appendTranscript(currentValue, transcript) {
   const nextValue = transcript.trim();
@@ -19,22 +25,24 @@ function appendTranscript(currentValue, transcript) {
 }
 
 function getProgressWidth(step, followUpIndex, totalQuestions) {
-  if (step === 0) {
-    return 20;
-  }
-  if (step === 1) {
-    return 40;
-  }
-  if (step === 2) {
-    return 60;
-  }
-  if (step === 3) {
-    if (!totalQuestions) {
-      return 80;
-    }
-    return 60 + (((followUpIndex + 1) / totalQuestions) * 20);
-  }
-  return 100;
+  const totalScreens = 7 + totalQuestions;
+  const currentScreen =
+    step <= 5
+      ? step
+      : step === 6
+        ? 6 + followUpIndex
+        : 6 + totalQuestions;
+  return ((currentScreen + 1) / totalScreens) * 100;
+}
+
+function hasValidAge(value) {
+  const age = Number(value);
+  return Number.isFinite(age) && age >= 15 && age <= 99;
+}
+
+function hasValidExperience(value) {
+  const years = Number(value);
+  return Number.isFinite(years) && years >= 0 && years <= 60;
 }
 
 function canContinue(step, draft, currentQuestion, currentAnswer) {
@@ -45,22 +53,56 @@ function canContinue(step, draft, currentQuestion, currentAnswer) {
     return Boolean(draft.education_level);
   }
   if (step === 2) {
+    return hasValidAge(draft.age);
+  }
+  if (step === 3) {
+    return hasValidExperience(draft.years_experience);
+  }
+  if (step === 4) {
+    return draft.languages.length > 0;
+  }
+  if (step === 5) {
     return draft.informal_description.trim().length >= 20;
   }
-  if (step === 3 && currentQuestion) {
+  if (step === 6 && currentQuestion) {
     return currentAnswer.trim().length > 0;
   }
   return true;
+}
+
+function canGenerateProfile(draft, questions, answers) {
+  if (
+    !draft.country_code ||
+    !draft.education_level ||
+    !hasValidAge(draft.age) ||
+    !hasValidExperience(draft.years_experience) ||
+    !draft.languages.length ||
+    draft.informal_description.trim().length < 20
+  ) {
+    return false;
+  }
+
+  return questions.every((question) => String(answers?.[question.question_id] || "").trim().length > 0);
 }
 
 function SummaryAnswerRow({ label, value, children }) {
   return (
     <div className="summary-row">
       <span className="summary-label">{label}</span>
-      <div className="summary-value">{value || children}</div>
-      {children ? <div className="summary-edit">{children}</div> : null}
+      {children ? <div className="summary-edit">{children}</div> : <div className="summary-value">{value}</div>}
     </div>
   );
+}
+
+function EducationOptions(copy) {
+  return [
+    ["none", copy.noFormalCredential],
+    ["primary", copy.primaryLabel],
+    ["secondary", copy.secondaryLabel],
+    ["technical", copy.technicalVocational],
+    ["tertiary", copy.bachelorsDegree],
+    ["postgraduate", copy.postgraduateLabel],
+  ];
 }
 
 export default function OnboardingFlow() {
@@ -90,35 +132,61 @@ export default function OnboardingFlow() {
   const progressWidth = getProgressWidth(step, followUpIndex, questions.length);
   const speechTag = getSpeechRecognitionTag(draft.country_code, draft.voice_locale);
   const remainingChars = Math.max(0, 280 - draft.informal_description.length);
+  const educationOptions = EducationOptions(copy);
+  const suggestedLanguages = LANGUAGE_SUGGESTIONS[draft.country_code] || [];
+  const canAdvance = canContinue(step, draft, currentQuestion, currentAnswer);
+  const reviewReady = canGenerateProfile(draft, questions, interview?.answers || {});
+  const exampleText =
+    draft.country_code === "PAK" && copy.suggestedStartPakistan
+      ? copy.suggestedStartPakistan
+      : copy.suggestedStartDefault || copy.workPlaceholder;
 
-  const summaryFields = useMemo(
-    () => ({
-      country: selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : "",
-      education: draft.education_level,
-      languageMode: getLocaleLabel(draft.ui_locale),
-      voiceMode: getVoiceLabel(draft.voice_locale),
-    }),
-    [draft.education_level, draft.ui_locale, draft.voice_locale, selectedCountry],
-  );
+  function normalizeLanguage(value) {
+    return value.trim();
+  }
+
+  function toggleLanguage(language) {
+    const nextLanguage = normalizeLanguage(language);
+    if (!nextLanguage) {
+      return;
+    }
+    if (draft.languages.includes(nextLanguage)) {
+      updateDraft({ languages: draft.languages.filter((entry) => entry !== nextLanguage) });
+      return;
+    }
+    updateDraft({ languages: [...draft.languages, nextLanguage] });
+  }
+
+  function addLanguage() {
+    const nextLanguage = normalizeLanguage(languageInput);
+    if (!nextLanguage) {
+      setLanguageInput("");
+      return;
+    }
+    if (!draft.languages.includes(nextLanguage)) {
+      updateDraft({ languages: [...draft.languages, nextLanguage] });
+    }
+    setLanguageInput("");
+  }
 
   async function nextStep() {
-    if (step === 2) {
+    if (step === 5) {
       const result = await generateInterview();
       if (result?.follow_up_questions?.length) {
         setFollowUpIndex(0);
-        setStep(3);
+        setStep(6);
         return;
       }
-      setStep(4);
+      setStep(7);
       return;
     }
 
-    if (step === 3) {
+    if (step === 6) {
       if (followUpIndex < questions.length - 1) {
         setFollowUpIndex((current) => current + 1);
         return;
       }
-      setStep(4);
+      setStep(7);
       return;
     }
 
@@ -126,23 +194,26 @@ export default function OnboardingFlow() {
   }
 
   function previousStep() {
-    if (step === 3 && followUpIndex > 0) {
-      setFollowUpIndex((current) => current - 1);
+    if (step === 7) {
+      if (questions.length > 0) {
+        setStep(6);
+        setFollowUpIndex(questions.length - 1);
+        return;
+      }
+      setStep(5);
+      return;
+    }
+    if (step === 6) {
+      if (followUpIndex > 0) {
+        setFollowUpIndex((current) => current - 1);
+        return;
+      }
+      setStep(5);
       return;
     }
     if (step > 0) {
       setStep((current) => current - 1);
     }
-  }
-
-  function addLanguage() {
-    const nextLanguage = languageInput.trim();
-    if (!nextLanguage || draft.languages.includes(nextLanguage)) {
-      setLanguageInput("");
-      return;
-    }
-    updateDraft({ languages: [...draft.languages, nextLanguage] });
-    setLanguageInput("");
   }
 
   async function submitProfile() {
@@ -154,8 +225,6 @@ export default function OnboardingFlow() {
     }
   }
 
-  const continueEnabled = canContinue(step, draft, currentQuestion, currentAnswer);
-
   return (
     <section className="conversation-shell" id="onboarding-flow">
       <div className="conversation-progress" aria-hidden="true">
@@ -165,7 +234,7 @@ export default function OnboardingFlow() {
       {step === 0 ? (
         <div className="conversation-screen conversation-screen-center">
           <div className="question-block">
-            <h2>Where are you from?</h2>
+            <h2>{draft.ui_locale === "en" ? "Where are you from?" : copy.countryTitle}</h2>
           </div>
           <div className="country-tiles-grid">
             {COUNTRIES.map((country) => (
@@ -181,7 +250,7 @@ export default function OnboardingFlow() {
                 <span className="country-choice-flag">{country.flag}</span>
                 <span className="country-choice-name">{country.name}</span>
                 <span className="country-choice-meta">
-                  {country.region} · {country.context}
+                  {country.region} - {country.context}
                 </span>
               </button>
             ))}
@@ -192,17 +261,10 @@ export default function OnboardingFlow() {
       {step === 1 ? (
         <div className="conversation-screen">
           <div className="question-block">
-            <h2>What's your highest level of education?</h2>
+            <h2>{draft.ui_locale === "en" ? "What's your highest level of education?" : copy.educationLabel}</h2>
           </div>
           <div className="choice-list">
-            {[
-              ["none", "No schooling"],
-              ["primary", "Primary"],
-              ["secondary", "Secondary"],
-              ["technical", "Vocational"],
-              ["tertiary", "Undergraduate"],
-              ["postgraduate", "Postgraduate"],
-            ].map(([value, label]) => (
+            {educationOptions.map(([value, label]) => (
               <button
                 key={value}
                 className={draft.education_level === value ? "education-choice is-active" : "education-choice"}
@@ -213,7 +275,7 @@ export default function OnboardingFlow() {
                 }}
               >
                 <span>{label}</span>
-                <span className="education-check">{draft.education_level === value ? "✓" : ""}</span>
+                <span className="education-check">{draft.education_level === value ? "\u2713" : ""}</span>
               </button>
             ))}
           </div>
@@ -223,13 +285,113 @@ export default function OnboardingFlow() {
       {step === 2 ? (
         <div className="conversation-screen">
           <div className="question-block">
-            <h2>Tell us what you do — in your own words.</h2>
+            <h2>{draft.ui_locale === "en" ? "How old are you?" : copy.ageLabel}</h2>
+            <p>{copy.backgroundCopy}</p>
           </div>
-          <div className="input-stack">
+          <div className="input-stack conversation-form-stack">
+            <input
+              className="input"
+              inputMode="numeric"
+              max="99"
+              min="15"
+              placeholder="18"
+              type="number"
+              value={draft.age}
+              onChange={(event) => updateDraft({ age: event.target.value })}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {step === 3 ? (
+        <div className="conversation-screen">
+          <div className="question-block">
+            <h2>{draft.ui_locale === "en" ? "How many years have you been doing this work?" : copy.yearsExperienceLabel}</h2>
+          </div>
+          <div className="input-stack conversation-form-stack">
+            <input
+              className="input"
+              inputMode="numeric"
+              max="60"
+              min="0"
+              placeholder="5"
+              type="number"
+              value={draft.years_experience}
+              onChange={(event) => updateDraft({ years_experience: event.target.value })}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {step === 4 ? (
+        <div className="conversation-screen">
+          <div className="question-block">
+            <h2>{copy.languagesSpoken}</h2>
+          </div>
+          <div className="input-stack conversation-form-stack">
+            {draft.languages.length ? (
+              <div className="tag-list">
+                {draft.languages.map((language) => (
+                  <button
+                    key={language}
+                    className="tag-pill"
+                    type="button"
+                    onClick={() => toggleLanguage(language)}
+                  >
+                    {language} x
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {suggestedLanguages.length ? (
+              <div className="tag-list">
+                {suggestedLanguages.map((language) => (
+                  <button
+                    key={language}
+                    className={draft.languages.includes(language) ? "choice-chip is-active" : "choice-chip"}
+                    type="button"
+                    onClick={() => toggleLanguage(language)}
+                  >
+                    {language}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="summary-inline-input">
+              <input
+                className="input"
+                placeholder={copy.addLanguagePlaceholder}
+                type="text"
+                value={languageInput}
+                onChange={(event) => setLanguageInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addLanguage();
+                  }
+                }}
+              />
+              <button className="button button-secondary" type="button" onClick={addLanguage}>
+                {copy.addLanguage}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {step === 5 ? (
+        <div className="conversation-screen">
+          <div className="question-block">
+            <h2>{draft.ui_locale === "en" ? "Tell us what you do - in your own words." : copy.workTitle}</h2>
+            <p>{copy.workCopy}</p>
+          </div>
+          <div className="input-stack conversation-form-stack">
             <textarea
               className="input textarea conversation-textarea"
               maxLength={280}
-              placeholder="Example: I fix phones and sell mobile accessories. I learned from YouTube. I've been doing this for 5 years."
+              placeholder={exampleText}
               rows="8"
               value={draft.informal_description}
               onChange={(event) => updateDraft({ informal_description: event.target.value })}
@@ -240,7 +402,7 @@ export default function OnboardingFlow() {
                 speechTag={speechTag}
                 locale={draft.ui_locale}
                 voiceLocale={draft.voice_locale}
-                buttonText="Or speak instead"
+                buttonText={draft.ui_locale === "en" ? "Or speak instead" : copy.speechButton}
                 onTranscript={(transcript) =>
                   updateDraft({ informal_description: appendTranscript(draft.informal_description, transcript) })
                 }
@@ -251,17 +413,19 @@ export default function OnboardingFlow() {
         </div>
       ) : null}
 
-      {step === 3 ? (
+      {step === 6 ? (
         <div className="conversation-screen">
           <div className="question-block">
-            <h2>A few follow-up questions</h2>
+            <h2>{copy.followUpTitle}</h2>
             {interview?.summary_for_user ? <p>{interview.summary_for_user}</p> : null}
           </div>
           {loadingInterview ? (
             <div className="section-card loading-card">Loading follow-up question...</div>
           ) : currentQuestion ? (
             <div className="followup-card">
-              <p className="eyebrow">Question {followUpIndex + 1}</p>
+              <p className="eyebrow">
+                {copy.stepPrefix} {followUpIndex + 1}
+              </p>
               <h3>{currentQuestion.question}</h3>
               {currentQuestion.help_text ? <p className="section-copy">{currentQuestion.help_text}</p> : null}
               {currentQuestion.suggested_answers?.length ? (
@@ -269,74 +433,76 @@ export default function OnboardingFlow() {
                   {currentQuestion.suggested_answers.map((answer) => (
                     <button
                       key={answer}
-                      className={currentAnswer === answer ? "choice-chip is-active" : "choice-chip"}
+                      className={currentAnswer === answer ? "education-choice is-active" : "education-choice"}
                       type="button"
                       onClick={() => updateInterviewAnswer(currentQuestion.question_id, answer)}
                     >
-                      {answer}
+                      <span>{answer}</span>
+                      <span className="education-check">{currentAnswer === answer ? "\u2713" : ""}</span>
                     </button>
                   ))}
                 </div>
-              ) : null}
-              <input
-                className="input"
-                type="text"
-                value={currentAnswer}
-                onChange={(event) => updateInterviewAnswer(currentQuestion.question_id, event.target.value)}
-              />
+              ) : (
+                <input
+                  className="input"
+                  type="text"
+                  value={currentAnswer}
+                  onChange={(event) => updateInterviewAnswer(currentQuestion.question_id, event.target.value)}
+                />
+              )}
             </div>
           ) : null}
         </div>
       ) : null}
 
-      {step === 4 ? (
+      {step === 7 ? (
         <div className="conversation-screen">
           <div className="question-block">
-            <h2>Ready to map your profile?</h2>
+            <h2>{copy.reviewTitle}</h2>
+            <p>{copy.reviewCopy}</p>
           </div>
           <div className="summary-card">
-            <SummaryAnswerRow label="Country" value={summaryFields.country} />
-            <SummaryAnswerRow label="Platform language" value={summaryFields.languageMode} />
-            <SummaryAnswerRow label="Voice input" value={summaryFields.voiceMode} />
+            <SummaryAnswerRow label={copy.reviewCountryLabel} value={selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : ""} />
 
-            <SummaryAnswerRow label="Education">
+            <SummaryAnswerRow label={copy.educationLabel}>
               <select
                 className="input"
                 value={draft.education_level}
                 onChange={(event) => updateDraft({ education_level: event.target.value })}
               >
-                <option value="none">No schooling</option>
-                <option value="primary">Primary</option>
-                <option value="secondary">Secondary</option>
-                <option value="technical">Vocational</option>
-                <option value="tertiary">Undergraduate</option>
-                <option value="postgraduate">Postgraduate</option>
+                {educationOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </SummaryAnswerRow>
 
-            <SummaryAnswerRow label="Age">
+            <SummaryAnswerRow label={copy.ageLabel}>
               <input
                 className="input"
-                min="15"
+                inputMode="numeric"
                 max="99"
+                min="15"
                 type="number"
                 value={draft.age}
-                onChange={(event) => updateDraft({ age: Number(event.target.value) })}
+                onChange={(event) => updateDraft({ age: event.target.value })}
               />
             </SummaryAnswerRow>
 
-            <SummaryAnswerRow label="Years of experience">
+            <SummaryAnswerRow label={copy.yearsExperienceLabel}>
               <input
                 className="input"
-                min="0"
+                inputMode="numeric"
                 max="60"
+                min="0"
                 type="number"
                 value={draft.years_experience}
-                onChange={(event) => updateDraft({ years_experience: Number(event.target.value) })}
+                onChange={(event) => updateDraft({ years_experience: event.target.value })}
               />
             </SummaryAnswerRow>
 
-            <SummaryAnswerRow label="Languages spoken">
+            <SummaryAnswerRow label={copy.languagesSpoken}>
               <div className="summary-language-editor">
                 <div className="tag-list">
                   {draft.languages.map((language) => (
@@ -344,15 +510,16 @@ export default function OnboardingFlow() {
                       key={language}
                       className="tag-pill"
                       type="button"
-                      onClick={() => updateDraft({ languages: draft.languages.filter((entry) => entry !== language) })}
+                      onClick={() => toggleLanguage(language)}
                     >
-                      {language} ×
+                      {language} x
                     </button>
                   ))}
                 </div>
                 <div className="summary-inline-input">
                   <input
                     className="input"
+                    placeholder={copy.addLanguagePlaceholder}
                     type="text"
                     value={languageInput}
                     onChange={(event) => setLanguageInput(event.target.value)}
@@ -364,13 +531,13 @@ export default function OnboardingFlow() {
                     }}
                   />
                   <button className="button button-secondary" type="button" onClick={addLanguage}>
-                    Add
+                    {copy.addLanguage}
                   </button>
                 </div>
               </div>
             </SummaryAnswerRow>
 
-            <SummaryAnswerRow label="Your work">
+            <SummaryAnswerRow label={copy.workLabel}>
               <textarea
                 className="input textarea summary-textarea"
                 rows="6"
@@ -407,26 +574,26 @@ export default function OnboardingFlow() {
             type="button"
             onClick={previousStep}
           >
-            ← Back
+            {"\u2190"} {copy.back}
           </button>
 
-          {step === 1 ? null : step < 4 ? (
+          {step === 1 ? null : step < 7 ? (
             <button
               className="button conversation-next"
-              disabled={!continueEnabled || loadingInterview}
+              disabled={!canAdvance || loadingInterview}
               type="button"
               onClick={nextStep}
             >
-              {step === 2 ? "Continue" : "Next"}
+              {step === 5 ? copy.findQuestions : copy.continue}
             </button>
           ) : (
             <button
               className="button conversation-next"
-              disabled={loadingProfile}
+              disabled={!reviewReady || loadingProfile}
               type="button"
               onClick={submitProfile}
             >
-              {loadingProfile ? "Generating..." : "Generate My Profile →"}
+              {loadingProfile ? copy.generatingProfile : copy.generateProfile}
             </button>
           )}
         </div>

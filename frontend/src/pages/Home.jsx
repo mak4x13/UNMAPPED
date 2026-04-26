@@ -25,43 +25,14 @@ export default function Home() {
             <button className="button" type="button" onClick={scrollToFlow}>
               {copy.homePrimary}
             </button>
-            <a className="button button-secondary" href="#why-it-matters">
+            <a className="button button-secondary" href="#onboarding-flow">
               {copy.homeSecondary}
             </a>
           </div>
         </div>
-
-        <div className="hero-panel">
-          <div className="hero-kicker">{copy.heroKicker}</div>
-          <ul className="hero-list">
-            <li>{copy.homeBullet1}</li>
-            <li>{copy.homeBullet2}</li>
-            <li>{copy.homeBullet3}</li>
-          </ul>
-        </div>
       </section>
 
-      <SectionDivider label="WHY THIS MATTERS" />
-
-      <section className="info-strip" id="why-it-matters">
-        <article className="info-card">
-          <p className="eyebrow">{copy.stepPrefix} 1</p>
-          <h3>{copy.infoStep1Title}</h3>
-          <p>{copy.infoStep1Text}</p>
-        </article>
-        <article className="info-card">
-          <p className="eyebrow">{copy.stepPrefix} 2</p>
-          <h3>{copy.infoStep2Title}</h3>
-          <p>{copy.infoStep2Text}</p>
-        </article>
-        <article className="info-card">
-          <p className="eyebrow">{copy.stepPrefix} 3</p>
-          <h3>{copy.infoStep3Title}</h3>
-          <p>{copy.infoStep3Text}</p>
-        </article>
-      </section>
-
-      <SectionDivider label="START YOUR JOURNEY" />
+      <SectionDivider label="START HERE" />
 
       <OnboardingFlow />
     </div>
