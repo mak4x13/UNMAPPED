@@ -17,6 +17,7 @@ function AppHeader() {
   const { clearReadiness } = useReadiness();
   const copy = getCopy(draft.ui_locale);
   const youthViewActive = pathname !== "/policy";
+  const homeView = pathname === "/";
 
   return (
     <header className="topbar">
@@ -39,8 +40,8 @@ function AppHeader() {
       </nav>
 
       <div className="header-actions">
-        {youthViewActive ? <CountrySelector compact selectedCountry={draft.country_code} onSelect={setCountryCode} /> : <p className="header-note">{copy.headerNotePolicy}</p>}
-        <LanguageSwitcher compact />
+        {youthViewActive && !homeView ? <CountrySelector compact selectedCountry={draft.country_code} onSelect={setCountryCode} /> : null}
+        {youthViewActive ? <LanguageSwitcher compact /> : <p className="header-note">{copy.headerNotePolicy}</p>}
         <button
           className="button button-ghost"
           type="button"

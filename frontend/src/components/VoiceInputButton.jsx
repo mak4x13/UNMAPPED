@@ -9,6 +9,8 @@ export default function VoiceInputButton({
   voiceLocale,
   onTranscript,
   compact = false,
+  buttonText,
+  listeningText,
 }) {
   const { supported, listening, error, startListening, stopListening } = useSpeechInput({
     lang: speechTag,
@@ -26,7 +28,7 @@ export default function VoiceInputButton({
   return (
     <div className={compact ? "voice-inline" : "voice-block"}>
       <button className={listening ? "voice-button is-listening" : "voice-button"} type="button" onClick={listening ? stopListening : startListening}>
-        <span>{listening ? label.listening : label.speechButton}</span>
+        <span>{listening ? (listeningText || label.listening) : (buttonText || label.speechButton)}</span>
       </button>
       <p className="speech-note">{error || getVoiceGuidance(locale, voiceLocale)}</p>
     </div>

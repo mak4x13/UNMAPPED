@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import SectionDivider from "./SectionDivider";
 import { getCopy } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
 import EconSignalBadge from "./EconSignalBadge";
@@ -20,8 +21,6 @@ export default function SkillsProfile({ profile, econData, loadingEcon }) {
   const { draft } = useProfile();
   const copy = getCopy(draft.ui_locale);
   const portability = Number(profile.portability_score || 0);
-  const circumference = 2 * Math.PI * 42;
-  const offset = circumference - (portability / 100) * circumference;
   const signals = econData?.signals || [];
 
   return (
@@ -42,25 +41,18 @@ export default function SkillsProfile({ profile, econData, loadingEcon }) {
         </div>
 
         <div className="gauge-card">
-          <div className="gauge">
-            <svg viewBox="0 0 100 100" aria-hidden="true">
-              <circle className="gauge-track" cx="50" cy="50" r="42" />
-              <circle
-                className="gauge-progress"
-                cx="50"
-                cy="50"
-                r="42"
-                style={{ strokeDasharray: circumference, strokeDashoffset: offset }}
-              />
-            </svg>
-            <div className="gauge-center">
-              <strong>{portability}</strong>
-              <span>{copy.portabilityLabel}</span>
-            </div>
+          <div className="key-stat">
+            <span className="stat-label">{copy.portabilityLabel}</span>
+            <strong className="stat-number">{portability}</strong>
+          </div>
+          <div className="plain-progress" aria-hidden="true">
+            <div className="plain-progress-fill" style={{ width: `${portability}%` }} />
           </div>
           <p className="gauge-note">{profile.portability_note}</p>
         </div>
       </div>
+
+      <SectionDivider label="YOUR SKILLS" />
 
       <div className="skills-grid">
         <article className="sub-card">
@@ -92,6 +84,8 @@ export default function SkillsProfile({ profile, econData, loadingEcon }) {
         </article>
       </div>
 
+      <SectionDivider label="SUMMARY" />
+
       <div className="summary-block">
         <div className="summary-heading">
           <span className="summary-icon">O</span>
@@ -103,6 +97,8 @@ export default function SkillsProfile({ profile, econData, loadingEcon }) {
           <strong>{Math.round(profile.confidence * 100)}%</strong>
         </div>
       </div>
+
+      <SectionDivider label="MARKET SIGNALS" />
 
       <section className="signal-row">
         {signals.map((signal) => (

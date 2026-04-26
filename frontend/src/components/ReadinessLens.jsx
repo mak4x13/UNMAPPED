@@ -11,6 +11,7 @@ import {
 import { getCopy, getRiskLabel } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
 import RiskBar from "./RiskBar";
+import SectionDivider from "./SectionDivider";
 
 
 function probabilityTone(probability) {
@@ -95,9 +96,9 @@ export default function ReadinessLens({ readiness, loading }) {
 
       <div className="readiness-header">
         <div className="readiness-gauge-card">
-          <div className={probabilityTone(calibrated)}>
-            <strong>{calibrated.toFixed(2)}</strong>
-            <span>{copy.calibratedRisk}</span>
+          <div className="key-stat">
+            <span className="stat-label">{copy.calibratedRisk}</span>
+            <strong className="stat-number">{calibrated.toFixed(2)}</strong>
           </div>
           <div className="probability-stack">
             <div className="probability-row">
@@ -145,6 +146,8 @@ export default function ReadinessLens({ readiness, loading }) {
         </div>
       </div>
 
+      <SectionDivider label="WHAT MAY CHANGE" />
+
       <div className="two-column-layout">
         <article className="sub-card">
           <div className="sub-card-header">
@@ -188,6 +191,8 @@ export default function ReadinessLens({ readiness, loading }) {
           </div>
         </article>
       </div>
+
+      <SectionDivider label="NEXT MOVES" />
 
       <div className="two-column-layout">
         <article className="sub-card">

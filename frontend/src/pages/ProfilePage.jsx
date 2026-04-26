@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 
+import ProfileExportCard from "../components/ProfileExportCard";
+import SectionDivider from "../components/SectionDivider";
 import SkillsProfile from "../components/SkillsProfile";
 import { getCopy } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
@@ -26,6 +28,8 @@ export default function ProfilePage() {
     <div className="page-stack">
       {error ? <div className="alert-banner">{error}</div> : null}
       <SkillsProfile profile={profile} econData={econData} loadingEcon={loadingEcon} />
+      <ProfileExportCard profile={profile} countryCode={draft.country_code} />
+      <SectionDivider label="NEXT STEP" />
       <section className="section-card section-inline">
         <div>
           <p className="eyebrow">{copy.nextStepEyebrow}</p>

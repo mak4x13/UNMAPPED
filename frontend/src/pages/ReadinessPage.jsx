@@ -1,17 +1,21 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
+import DataTransparencyPanel from "../components/DataTransparencyPanel";
 import OpportunityPanel from "../components/OpportunityPanel";
 import ReadinessLens from "../components/ReadinessLens";
+import SectionDivider from "../components/SectionDivider";
+import { COUNTRIES } from "../config/countries";
 import { getCopy } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
 import { useReadiness } from "../hooks/useReadiness";
 
 
 export default function ReadinessPage() {
-  const { profile, draft, opportunities, loadOpportunities, loadingOpportunities } = useProfile();
+  const { profile, draft, econData, opportunities, loadOpportunities, loadingOpportunities } = useProfile();
   const { readiness, loadingReadiness, error, generateReadiness } = useReadiness();
   const copy = getCopy(draft.ui_locale);
+  const countryName = COUNTRIES.find((country) => country.code === draft.country_code)?.name || draft.country_code;
 
   useEffect(() => {
     if (!profile) {
@@ -40,6 +44,8 @@ export default function ReadinessPage() {
     <div className="page-stack">
       {error ? <div className="alert-banner">{error}</div> : null}
       <ReadinessLens readiness={readiness} loading={loadingReadiness} />
+      {readiness ? <DataTransparencyPanel readiness={readiness} econData={econData} countryName={countryName} /> : null}
+      <SectionDivider label="OPPORTUNITIES" />
       <OpportunityPanel opportunities={opportunities} loading={loadingOpportunities} />
     </div>
   );
