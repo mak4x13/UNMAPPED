@@ -52,6 +52,7 @@ textarea {
 
 button {
   color: inherit;
+  cursor: pointer;
 }
 
 #root {
@@ -59,7 +60,7 @@ button {
 }
 
 .app-shell {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px 64px;
 }
@@ -180,6 +181,9 @@ button {
 .country-card,
 .profile-export-card,
 .impact-card,
+.gauge-card,
+.readiness-gauge-card,
+.summary-block,
 .summary-card,
 .followup-card {
   border: 1px solid var(--border);
@@ -196,6 +200,9 @@ button {
 .econ-badge,
 .info-card,
 .durable-item,
+.gauge-card,
+.readiness-gauge-card,
+.summary-block,
 .profile-export-card,
 .impact-card,
 .summary-card,
@@ -214,6 +221,9 @@ button {
 .page-stack,
 .info-strip,
 .impact-strip,
+.policy-summary-grid,
+.policy-context-grid,
+.policy-metric-grid,
 .skills-grid,
 .two-column-layout,
 .policy-grid,
@@ -278,12 +288,12 @@ button {
 
 .hero-copy h2,
 .question-block h2 {
-  font-size: clamp(2.5rem, 5vw, 3.4rem);
+  font-size: clamp(2.35rem, 4vw, 3.2rem);
   line-height: 1.1;
 }
 
 .hero-text {
-  max-width: 62ch;
+  max-width: 58ch;
   margin: 0;
 }
 
@@ -315,6 +325,9 @@ button {
 }
 
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 52px;
   padding: 0 18px;
   border: 1px solid var(--primary);
@@ -322,6 +335,7 @@ button {
   background: var(--primary);
   color: #092019;
   font-weight: 600;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -339,12 +353,18 @@ button {
 }
 
 .back-link {
+  display: inline-flex;
+  align-items: center;
   min-height: 52px;
   padding: 0;
   border: none;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
+}
+
+.toolbar-reset {
+  width: 100%;
 }
 
 .compact-country-strip {
@@ -449,6 +469,10 @@ select:focus {
   text-align: left;
 }
 
+.risk-pill {
+  white-space: nowrap;
+}
+
 .skill-pill-accent,
 .choice-chip.is-active {
   background: var(--accent-dim);
@@ -543,7 +567,7 @@ select:focus {
 
 .conversation-shell {
   display: grid;
-  gap: 32px;
+  gap: 24px;
 }
 
 .conversation-progress {
@@ -565,13 +589,17 @@ select:focus {
 
 .conversation-screen-center {
   justify-items: stretch;
-  align-content: center;
+  align-content: start;
+}
+
+.conversation-screen-fill {
+  width: 100%;
 }
 
 .question-block {
   display: grid;
   gap: 12px;
-  max-width: 62ch;
+  max-width: 72ch;
   min-width: 0;
 }
 
@@ -596,6 +624,8 @@ select:focus {
   gap: 12px;
   align-content: start;
   text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .country-choice.is-active {
@@ -634,6 +664,40 @@ select:focus {
   align-items: center;
   justify-content: space-between;
   text-align: left;
+  cursor: pointer;
+}
+
+.selection-row {
+  min-height: 60px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selection-row.is-active {
+  border-color: var(--primary);
+  background: var(--primary-dim);
+}
+
+.selection-indicator {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-size: 0.95rem;
+  flex: 0 0 auto;
 }
 
 .education-choice.is-active {
@@ -662,6 +726,9 @@ select:focus {
 }
 
 .voice-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 52px;
   padding: 0 18px;
   border: 1px solid var(--border);
@@ -692,7 +759,8 @@ select:focus {
 .summary-card {
   display: grid;
   gap: 16px;
-  max-width: 760px;
+  max-width: none;
+  width: 100%;
 }
 
 .summary-row {
@@ -725,7 +793,8 @@ select:focus {
 }
 
 .conversation-form-stack {
-  max-width: 760px;
+  width: 100%;
+  max-width: none;
 }
 
 .section-copy-block {
@@ -809,6 +878,7 @@ select:focus {
 
 .summary-block {
   border-left: 3px solid var(--primary);
+  padding-left: 16px;
 }
 
 .summary-icon {
@@ -839,6 +909,55 @@ select:focus {
   width: 100%;
   border-collapse: collapse;
   min-width: 520px;
+  table-layout: auto;
+}
+
+.policy-summary-grid,
+.policy-context-grid,
+.policy-metric-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.policy-table th:nth-child(3),
+.policy-table td:nth-child(3),
+.policy-table th:nth-child(4),
+.policy-table td:nth-child(4) {
+  white-space: nowrap;
+}
+
+.skills-risk-table th,
+.skills-risk-table td {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.skills-risk-table th:nth-child(1),
+.skills-risk-table td:nth-child(1) {
+  width: 32%;
+  min-width: 220px;
+}
+
+.skills-risk-table th:nth-child(2),
+.skills-risk-table td:nth-child(2) {
+  width: 170px;
+  min-width: 170px;
+  white-space: nowrap;
+}
+
+.skills-risk-table td:nth-child(2) {
+  padding-right: 16px;
+}
+
+.skills-risk-table th:nth-child(3),
+.skills-risk-table td:nth-child(3) {
+  width: 46%;
+}
+
+.skills-risk-table td:nth-child(2) .risk-pill {
+  min-width: 104px;
+  justify-content: center;
 }
 
 .table-wrap {
@@ -867,10 +986,51 @@ select:focus {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+  align-items: center;
 }
 
 .accordion-card summary::-webkit-details-marker {
   display: none;
+}
+
+.accordion-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.accordion-copy strong {
+  overflow-wrap: anywhere;
+}
+
+.accordion-copy p {
+  margin: 0;
+}
+
+.accordion-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.accordion-chevron {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.accordion-card[open] .accordion-chevron {
+  transform: rotate(45deg);
 }
 
 .inline-link {
@@ -896,6 +1056,7 @@ select:focus {
   padding: 20px;
   border-left: 3px solid var(--primary);
   background: var(--surface);
+  overflow-wrap: anywhere;
 }
 
 .export-layout {
@@ -904,11 +1065,43 @@ select:focus {
 }
 
 .export-layout-compact {
-  max-width: 760px;
+  width: 100%;
+  max-width: none;
 }
 
 .export-preview-copy {
   max-width: 52ch;
+}
+
+.export-preview-surface {
+  display: block;
+  width: 100%;
+}
+
+.export-download-button {
+  width: 100%;
+}
+
+.profile-export-card,
+.profile-export-head,
+.export-stat-row,
+.export-footer {
+  width: 100%;
+}
+
+.profile-export-card,
+.profile-export-card h4,
+.profile-export-card .stat-label,
+.profile-export-card .stat-number,
+.profile-export-card .export-country,
+.profile-export-card .export-meta,
+.profile-export-card .tag-pill {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.profile-export-card .badge-list {
+  width: 100%;
 }
 
 .export-kicker {
@@ -995,6 +1188,42 @@ select:focus {
   justify-self: start;
 }
 
+.skills-cta {
+  display: grid;
+  gap: 16px;
+}
+
+.skills-cta .button {
+  justify-self: start;
+}
+
+.conversation-tools {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.conversation-tools summary {
+  list-style: none;
+  padding: 14px 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.conversation-tools summary::-webkit-details-marker {
+  display: none;
+}
+
+.conversation-tools-body {
+  display: grid;
+  gap: 16px;
+  padding: 0 18px 18px;
+}
+
+.journey-language-panel .language-switcher-grid.compact {
+  grid-template-columns: 1fr;
+}
+
 .transparency-panel summary {
   display: grid;
   gap: 8px;
@@ -1010,7 +1239,12 @@ select:focus {
 .opportunity-copy,
 .transparency-primary,
 .transparency-meta,
-.export-meta {
+.export-meta,
+.summary-block p,
+.durable-item p,
+.accordion-card p,
+.metric-copy,
+.gauge-note {
   overflow-wrap: anywhere;
 }
 
@@ -1045,10 +1279,19 @@ select:focus {
   }
 
   .impact-strip,
+  .policy-context-grid,
   .skills-grid,
   .two-column-layout,
   .policy-grid,
   .signal-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .policy-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .policy-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1073,12 +1316,21 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .conversation-tools-body {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
   .section-header {
     grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr);
     align-items: start;
   }
 
   .profile-next-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .skills-cta {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
@@ -1091,7 +1343,7 @@ select:focus {
 
   .hero-copy h2,
   .question-block h2 {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
   }
 
   .button,

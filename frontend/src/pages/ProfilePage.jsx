@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import ProfileExportCard from "../components/ProfileExportCard";
@@ -8,8 +9,17 @@ import { useProfile } from "../hooks/useProfile";
 
 
 export default function ProfilePage() {
-  const { profile, econData, loadingEcon, error, draft } = useProfile();
+  const { profile, econData, loadingEcon, error, draft, generateProfile, loadingProfile } = useProfile();
   const copy = getCopy(draft.ui_locale);
+
+  useEffect(() => {
+    if (!profile || loadingProfile) {
+      return;
+    }
+    if (profile.ui_locale !== draft.ui_locale) {
+      generateProfile({ ui_locale: draft.ui_locale });
+    }
+  }, [draft.ui_locale, loadingProfile, profile?.isco_unit_code]);
 
   if (!profile) {
     return (

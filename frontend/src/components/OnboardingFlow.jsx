@@ -1,9 +1,11 @@
-import { startTransition, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { COUNTRIES } from "../config/countries";
 import { getCopy, getSpeechRecognitionTag } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
+import CountrySelector from "./CountrySelector";
+import LanguageSwitcher from "./LanguageSwitcher";
 import VoiceInputButton from "./VoiceInputButton";
 
 const LANGUAGE_SUGGESTIONS = {
@@ -12,6 +14,19 @@ const LANGUAGE_SUGGESTIONS = {
   KEN: ["English", "Swahili", "Kikuyu", "Luo"],
   BGD: ["Bangla", "English", "Chittagonian"],
 };
+
+const MULTI_SELECT_HINTS = [
+  /which/i,
+  /what tools/i,
+  /what types/i,
+  /what kind/i,
+  /which of these/i,
+  /select all/i,
+  /where do/i,
+  /who do/i,
+  /how did you learn/i,
+  /what do you use/i,
+];
 
 function appendTranscript(currentValue, transcript) {
   const nextValue = transcript.trim();
@@ -25,22 +40,32 @@ function appendTranscript(currentValue, transcript) {
 }
 
 function getProgressWidth(step, followUpIndex, totalQuestions) {
-  const totalScreens = 7 + totalQuestions;
+  const totalScreens = 8 + totalQuestions;
   const currentScreen =
-    step <= 5
+    step <= 6
       ? step
-      : step === 6
-        ? 6 + followUpIndex
-        : 6 + totalQuestions;
+      : step === 7
+        ? 7 + followUpIndex
+        : 7 + totalQuestions;
   return ((currentScreen + 1) / totalScreens) * 100;
 }
 
+function hasValue(value) {
+  return String(value ?? "").trim().length > 0;
+}
+
 function hasValidAge(value) {
+  if (!hasValue(value)) {
+    return false;
+  }
   const age = Number(value);
   return Number.isFinite(age) && age >= 15 && age <= 99;
 }
 
 function hasValidExperience(value) {
+  if (!hasValue(value)) {
+    return false;
+  }
   const years = Number(value);
   return Number.isFinite(years) && years >= 0 && years <= 60;
 }
@@ -50,21 +75,24 @@ function canContinue(step, draft, currentQuestion, currentAnswer) {
     return Boolean(draft.country_code);
   }
   if (step === 1) {
-    return Boolean(draft.education_level);
+    return Boolean(draft.ui_locale) && Boolean(draft.voice_locale);
   }
   if (step === 2) {
-    return hasValidAge(draft.age);
+    return Boolean(draft.education_level);
   }
   if (step === 3) {
-    return hasValidExperience(draft.years_experience);
+    return hasValidAge(draft.age);
   }
   if (step === 4) {
-    return draft.languages.length > 0;
+    return hasValidExperience(draft.years_experience);
   }
   if (step === 5) {
+    return draft.languages.length > 0;
+  }
+  if (step === 6) {
     return draft.informal_description.trim().length >= 20;
   }
-  if (step === 6 && currentQuestion) {
+  if (step === 7 && currentQuestion) {
     return currentAnswer.trim().length > 0;
   }
   return true;
@@ -94,7 +122,7 @@ function SummaryAnswerRow({ label, value, children }) {
   );
 }
 
-function EducationOptions(copy) {
+function getEducationOptions(copy) {
   return [
     ["none", copy.noFormalCredential],
     ["primary", copy.primaryLabel],
@@ -103,6 +131,25 @@ function EducationOptions(copy) {
     ["tertiary", copy.bachelorsDegree],
     ["postgraduate", copy.postgraduateLabel],
   ];
+}
+
+function parseAnswerParts(answer) {
+  return String(answer || "")
+    .split("; ")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function serializeAnswerParts(parts) {
+  return parts.filter(Boolean).join("; ");
+}
+
+function questionAllowsMultipleAnswers(question) {
+  if (!question?.suggested_answers?.length) {
+    return false;
+  }
+  const prompt = String(question.question || "");
+  return MULTI_SELECT_HINTS.some((pattern) => pattern.test(prompt));
 }
 
 export default function OnboardingFlow() {
@@ -124,6 +171,9 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState(0);
   const [followUpIndex, setFollowUpIndex] = useState(0);
   const [languageInput, setLanguageInput] = useState("");
+  const [showJourneySettings, setShowJourneySettings] = useState(false);
+  const [showLanguageOtherInput, setShowLanguageOtherInput] = useState(false);
+  const [followUpOtherMode, setFollowUpOtherMode] = useState({});
 
   const selectedCountry = COUNTRIES.find((country) => country.code === draft.country_code);
   const questions = interview?.follow_up_questions || [];
@@ -132,7 +182,7 @@ export default function OnboardingFlow() {
   const progressWidth = getProgressWidth(step, followUpIndex, questions.length);
   const speechTag = getSpeechRecognitionTag(draft.country_code, draft.voice_locale);
   const remainingChars = Math.max(0, 280 - draft.informal_description.length);
-  const educationOptions = EducationOptions(copy);
+  const educationOptions = getEducationOptions(copy);
   const suggestedLanguages = LANGUAGE_SUGGESTIONS[draft.country_code] || [];
   const canAdvance = canContinue(step, draft, currentQuestion, currentAnswer);
   const reviewReady = canGenerateProfile(draft, questions, interview?.answers || {});
@@ -140,6 +190,40 @@ export default function OnboardingFlow() {
     draft.country_code === "PAK" && copy.suggestedStartPakistan
       ? copy.suggestedStartPakistan
       : copy.suggestedStartDefault || copy.workPlaceholder;
+  const customLanguages = draft.languages.filter((language) => !suggestedLanguages.includes(language));
+  const currentAnswerParts = parseAnswerParts(currentAnswer);
+  const currentSuggestedAnswers = currentQuestion?.suggested_answers || [];
+  const currentCustomAnswers = currentAnswerParts.filter((value) => !currentSuggestedAnswers.includes(value));
+  const showFollowUpOtherInput =
+    Boolean(followUpOtherMode[currentQuestion?.question_id]) || currentCustomAnswers.length > 0;
+
+  useEffect(() => {
+    const draftIsEmpty =
+      !draft.country_code &&
+      !draft.education_level &&
+      !draft.informal_description &&
+      !draft.languages.length &&
+      !draft.age &&
+      !draft.years_experience &&
+      !interview;
+
+    if (draftIsEmpty) {
+      setStep(0);
+      setFollowUpIndex(0);
+      setLanguageInput("");
+      setShowJourneySettings(false);
+      setShowLanguageOtherInput(false);
+      setFollowUpOtherMode({});
+    }
+  }, [
+    draft.age,
+    draft.country_code,
+    draft.education_level,
+    draft.informal_description,
+    draft.languages,
+    draft.years_experience,
+    interview,
+  ]);
 
   function normalizeLanguage(value) {
     return value.trim();
@@ -169,24 +253,79 @@ export default function OnboardingFlow() {
     setLanguageInput("");
   }
 
-  async function nextStep() {
-    if (step === 5) {
-      const result = await generateInterview();
-      if (result?.follow_up_questions?.length) {
-        setFollowUpIndex(0);
-        setStep(6);
-        return;
-      }
-      setStep(7);
+  function toggleFollowUpChoice(question, answer) {
+    if (!question) {
       return;
     }
 
+    if (!questionAllowsMultipleAnswers(question)) {
+      updateInterviewAnswer(question.question_id, answer);
+      setFollowUpOtherMode((current) => ({ ...current, [question.question_id]: false }));
+      return;
+    }
+
+    const currentValues = parseAnswerParts(interview?.answers?.[question.question_id]);
+    const nextValues = currentValues.includes(answer)
+      ? currentValues.filter((value) => value !== answer)
+      : [...currentValues, answer];
+    updateInterviewAnswer(question.question_id, serializeAnswerParts(nextValues));
+  }
+
+  function toggleFollowUpOther(question) {
+    if (!question) {
+      return;
+    }
+
+    const questionId = question.question_id;
+    const nextMode = !showFollowUpOtherInput;
+    setFollowUpOtherMode((current) => ({ ...current, [questionId]: nextMode }));
+
+    if (!nextMode) {
+      const keptValues = parseAnswerParts(interview?.answers?.[questionId]).filter((value) =>
+        question.suggested_answers.includes(value),
+      );
+      updateInterviewAnswer(questionId, serializeAnswerParts(keptValues));
+    } else if (!questionAllowsMultipleAnswers(question)) {
+      updateInterviewAnswer(questionId, "");
+    }
+  }
+
+  function updateFollowUpOtherAnswer(question, value) {
+    if (!question) {
+      return;
+    }
+
+    const trimmed = value.trim();
+    if (!questionAllowsMultipleAnswers(question)) {
+      updateInterviewAnswer(question.question_id, value);
+      return;
+    }
+
+    const keptValues = parseAnswerParts(interview?.answers?.[question.question_id]).filter((entry) =>
+      question.suggested_answers.includes(entry),
+    );
+    const nextValues = trimmed ? [...keptValues, trimmed] : keptValues;
+    updateInterviewAnswer(question.question_id, serializeAnswerParts(nextValues));
+  }
+
+  async function nextStep() {
     if (step === 6) {
+      const result = await generateInterview();
+      if (result?.follow_up_questions?.length) {
+        setFollowUpIndex(0);
+        setStep(7);
+        return;
+      }
+      setStep(8);
+      return;
+    }
+
+    if (step === 7) {
       if (followUpIndex < questions.length - 1) {
         setFollowUpIndex((current) => current + 1);
         return;
       }
-      setStep(7);
+      setStep(8);
       return;
     }
 
@@ -194,21 +333,21 @@ export default function OnboardingFlow() {
   }
 
   function previousStep() {
-    if (step === 7) {
+    if (step === 8) {
       if (questions.length > 0) {
-        setStep(6);
+        setStep(7);
         setFollowUpIndex(questions.length - 1);
         return;
       }
-      setStep(5);
+      setStep(6);
       return;
     }
-    if (step === 6) {
+    if (step === 7) {
       if (followUpIndex > 0) {
         setFollowUpIndex((current) => current - 1);
         return;
       }
-      setStep(5);
+      setStep(6);
       return;
     }
     if (step > 0) {
@@ -231,10 +370,22 @@ export default function OnboardingFlow() {
         <div className="conversation-progress-fill" style={{ width: `${progressWidth}%` }} />
       </div>
 
+      {step > 0 ? (
+        <details className="conversation-tools" open={showJourneySettings}>
+          <summary onClick={() => setShowJourneySettings((current) => !current)}>
+            Change country, platform language, or voice input
+          </summary>
+          <div className="conversation-tools-body">
+            <CountrySelector compact selectedCountry={draft.country_code} onSelect={setCountryCode} />
+            <LanguageSwitcher compact />
+          </div>
+        </details>
+      ) : null}
+
       {step === 0 ? (
-        <div className="conversation-screen conversation-screen-center">
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
-            <h2>{draft.ui_locale === "en" ? "Where are you from?" : copy.countryTitle}</h2>
+            <h2>Where are you from?</h2>
           </div>
           <div className="country-tiles-grid">
             {COUNTRIES.map((country) => (
@@ -259,20 +410,29 @@ export default function OnboardingFlow() {
       ) : null}
 
       {step === 1 ? (
-        <div className="conversation-screen">
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
-            <h2>{draft.ui_locale === "en" ? "What's your highest level of education?" : copy.educationLabel}</h2>
+            <h2>Choose the platform and voice language</h2>
+            <p>{copy.quickLanguageCopy}</p>
           </div>
-          <div className="choice-list">
+          <div className="section-card conversation-form-stack journey-language-panel">
+            <LanguageSwitcher compact />
+          </div>
+        </div>
+      ) : null}
+
+      {step === 2 ? (
+        <div className="conversation-screen conversation-screen-fill">
+          <div className="question-block">
+            <h2>What's your highest level of education?</h2>
+          </div>
+          <div className="choice-list conversation-form-stack">
             {educationOptions.map(([value, label]) => (
               <button
                 key={value}
                 className={draft.education_level === value ? "education-choice is-active" : "education-choice"}
                 type="button"
-                onClick={() => {
-                  updateDraft({ education_level: value });
-                  setStep(2);
-                }}
+                onClick={() => updateDraft({ education_level: value })}
               >
                 <span>{label}</span>
                 <span className="education-check">{draft.education_level === value ? "\u2713" : ""}</span>
@@ -282,10 +442,10 @@ export default function OnboardingFlow() {
         </div>
       ) : null}
 
-      {step === 2 ? (
-        <div className="conversation-screen">
+      {step === 3 ? (
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
-            <h2>{draft.ui_locale === "en" ? "How old are you?" : copy.ageLabel}</h2>
+            <h2>How old are you?</h2>
             <p>{copy.backgroundCopy}</p>
           </div>
           <div className="input-stack conversation-form-stack">
@@ -303,10 +463,10 @@ export default function OnboardingFlow() {
         </div>
       ) : null}
 
-      {step === 3 ? (
-        <div className="conversation-screen">
+      {step === 4 ? (
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
-            <h2>{draft.ui_locale === "en" ? "How many years have you been doing this work?" : copy.yearsExperienceLabel}</h2>
+            <h2>How many years have you been doing this work?</h2>
           </div>
           <div className="input-stack conversation-form-stack">
             <input
@@ -323,12 +483,36 @@ export default function OnboardingFlow() {
         </div>
       ) : null}
 
-      {step === 4 ? (
-        <div className="conversation-screen">
+      {step === 5 ? (
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
             <h2>{copy.languagesSpoken}</h2>
           </div>
           <div className="input-stack conversation-form-stack">
+            {suggestedLanguages.length ? (
+              <div className="choice-list">
+                {suggestedLanguages.map((language) => (
+                  <button
+                    key={language}
+                    className={draft.languages.includes(language) ? "selection-row is-active" : "selection-row"}
+                    type="button"
+                    onClick={() => toggleLanguage(language)}
+                  >
+                    <span>{language}</span>
+                    <span className="selection-indicator">{draft.languages.includes(language) ? "\u2713" : ""}</span>
+                  </button>
+                ))}
+                <button
+                  className={showLanguageOtherInput || customLanguages.length ? "selection-row is-active" : "selection-row"}
+                  type="button"
+                  onClick={() => setShowLanguageOtherInput((current) => !current)}
+                >
+                  <span>Other or enter your own</span>
+                  <span className="selection-indicator">{showLanguageOtherInput || customLanguages.length ? "\u2713" : ""}</span>
+                </button>
+              </div>
+            ) : null}
+
             {draft.languages.length ? (
               <div className="tag-list">
                 {draft.languages.map((language) => (
@@ -344,47 +528,34 @@ export default function OnboardingFlow() {
               </div>
             ) : null}
 
-            {suggestedLanguages.length ? (
-              <div className="tag-list">
-                {suggestedLanguages.map((language) => (
-                  <button
-                    key={language}
-                    className={draft.languages.includes(language) ? "choice-chip is-active" : "choice-chip"}
-                    type="button"
-                    onClick={() => toggleLanguage(language)}
-                  >
-                    {language}
-                  </button>
-                ))}
+            {showLanguageOtherInput || customLanguages.length ? (
+              <div className="summary-inline-input">
+                <input
+                  className="input"
+                  placeholder={copy.addLanguagePlaceholder}
+                  type="text"
+                  value={languageInput}
+                  onChange={(event) => setLanguageInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addLanguage();
+                    }
+                  }}
+                />
+                <button className="button button-secondary" type="button" onClick={addLanguage}>
+                  {copy.addLanguage}
+                </button>
               </div>
             ) : null}
-
-            <div className="summary-inline-input">
-              <input
-                className="input"
-                placeholder={copy.addLanguagePlaceholder}
-                type="text"
-                value={languageInput}
-                onChange={(event) => setLanguageInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    addLanguage();
-                  }
-                }}
-              />
-              <button className="button button-secondary" type="button" onClick={addLanguage}>
-                {copy.addLanguage}
-              </button>
-            </div>
           </div>
         </div>
       ) : null}
 
-      {step === 5 ? (
-        <div className="conversation-screen">
+      {step === 6 ? (
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
-            <h2>{draft.ui_locale === "en" ? "Tell us what you do - in your own words." : copy.workTitle}</h2>
+            <h2>Tell us what you do - in your own words.</h2>
             <p>{copy.workCopy}</p>
           </div>
           <div className="input-stack conversation-form-stack">
@@ -402,7 +573,7 @@ export default function OnboardingFlow() {
                 speechTag={speechTag}
                 locale={draft.ui_locale}
                 voiceLocale={draft.voice_locale}
-                buttonText={draft.ui_locale === "en" ? "Or speak instead" : copy.speechButton}
+                buttonText="Or speak instead"
                 onTranscript={(transcript) =>
                   updateDraft({ informal_description: appendTranscript(draft.informal_description, transcript) })
                 }
@@ -413,8 +584,8 @@ export default function OnboardingFlow() {
         </div>
       ) : null}
 
-      {step === 6 ? (
-        <div className="conversation-screen">
+      {step === 7 ? (
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
             <h2>{copy.followUpTitle}</h2>
             {interview?.summary_for_user ? <p>{interview.summary_for_user}</p> : null}
@@ -422,7 +593,7 @@ export default function OnboardingFlow() {
           {loadingInterview ? (
             <div className="section-card loading-card">Loading follow-up question...</div>
           ) : currentQuestion ? (
-            <div className="followup-card">
+            <div className="followup-card conversation-form-stack">
               <p className="eyebrow">
                 {copy.stepPrefix} {followUpIndex + 1}
               </p>
@@ -433,14 +604,26 @@ export default function OnboardingFlow() {
                   {currentQuestion.suggested_answers.map((answer) => (
                     <button
                       key={answer}
-                      className={currentAnswer === answer ? "education-choice is-active" : "education-choice"}
+                      className={
+                        currentAnswerParts.includes(answer) ? "selection-row is-active" : "selection-row"
+                      }
                       type="button"
-                      onClick={() => updateInterviewAnswer(currentQuestion.question_id, answer)}
+                      onClick={() => toggleFollowUpChoice(currentQuestion, answer)}
                     >
                       <span>{answer}</span>
-                      <span className="education-check">{currentAnswer === answer ? "\u2713" : ""}</span>
+                      <span className="selection-indicator">
+                        {currentAnswerParts.includes(answer) ? "\u2713" : ""}
+                      </span>
                     </button>
                   ))}
+                  <button
+                    className={showFollowUpOtherInput ? "selection-row is-active" : "selection-row"}
+                    type="button"
+                    onClick={() => toggleFollowUpOther(currentQuestion)}
+                  >
+                    <span>Other or enter your own</span>
+                    <span className="selection-indicator">{showFollowUpOtherInput ? "\u2713" : ""}</span>
+                  </button>
                 </div>
               ) : (
                 <input
@@ -450,18 +633,27 @@ export default function OnboardingFlow() {
                   onChange={(event) => updateInterviewAnswer(currentQuestion.question_id, event.target.value)}
                 />
               )}
+              {currentQuestion.suggested_answers?.length && showFollowUpOtherInput ? (
+                <input
+                  className="input"
+                  placeholder="Type your own answer"
+                  type="text"
+                  value={currentCustomAnswers.join("; ")}
+                  onChange={(event) => updateFollowUpOtherAnswer(currentQuestion, event.target.value)}
+                />
+              ) : null}
             </div>
           ) : null}
         </div>
       ) : null}
 
-      {step === 7 ? (
-        <div className="conversation-screen">
+      {step === 8 ? (
+        <div className="conversation-screen conversation-screen-fill">
           <div className="question-block">
-            <h2>{copy.reviewTitle}</h2>
+            <h2>Ready to map your profile?</h2>
             <p>{copy.reviewCopy}</p>
           </div>
-          <div className="summary-card">
+          <div className="summary-card conversation-form-stack">
             <SummaryAnswerRow label={copy.reviewCountryLabel} value={selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : ""} />
 
             <SummaryAnswerRow label={copy.educationLabel}>
@@ -577,14 +769,14 @@ export default function OnboardingFlow() {
             {"\u2190"} {copy.back}
           </button>
 
-          {step === 1 ? null : step < 7 ? (
+          {step < 8 ? (
             <button
               className="button conversation-next"
               disabled={!canAdvance || loadingInterview}
               type="button"
               onClick={nextStep}
             >
-              {step === 5 ? copy.findQuestions : copy.continue}
+              {step === 6 ? copy.findQuestions : copy.continue}
             </button>
           ) : (
             <button
@@ -593,7 +785,7 @@ export default function OnboardingFlow() {
               type="button"
               onClick={submitProfile}
             >
-              {loadingProfile ? copy.generatingProfile : copy.generateProfile}
+              {loadingProfile ? copy.generatingProfile : "Generate My Profile ->"}
             </button>
           )}
         </div>

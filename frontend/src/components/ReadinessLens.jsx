@@ -14,17 +14,6 @@ import RiskBar from "./RiskBar";
 import SectionDivider from "./SectionDivider";
 
 
-function probabilityTone(probability) {
-  if (probability < 0.35) {
-    return "readiness-gauge is-low";
-  }
-  if (probability <= 0.65) {
-    return "readiness-gauge is-moderate";
-  }
-  return "readiness-gauge is-high";
-}
-
-
 function riskPillClass(level) {
   if (level === "low") {
     return "risk-pill is-low";
@@ -36,7 +25,20 @@ function riskPillClass(level) {
 }
 
 
-function resourceHref(label) {
+const MARKDOWN_LINK_PATTERN = /^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/i;
+const URL_PATTERN = /^https?:\/\/\S+$/i;
+
+
+function resolveResourceLink(resource) {
+  const value = String(resource || "").trim();
+  const markdownMatch = value.match(MARKDOWN_LINK_PATTERN);
+  if (markdownMatch) {
+    return { label: markdownMatch[1].trim(), href: markdownMatch[2].trim() };
+  }
+  if (URL_PATTERN.test(value)) {
+    return { label: value, href: value };
+  }
+
   const links = {
     "Cisco Networking Academy - Introduction to IoT": "https://www.netacad.com/courses/iot/introduction-iot",
     "GOGLA training modules": "https://www.gogla.org/",
@@ -46,7 +48,38 @@ function resourceHref(label) {
     "Alison - Diploma in Electrical Studies": "https://alison.com/course/diploma-in-electrical-studies",
     "Google Career Certificates - digital support resources": "https://grow.google/certificates/it-support/",
   };
-  return links[label] || `https://www.google.com/search?q=${encodeURIComponent(label)}`;
+  return {
+    label: value,
+    href: links[value] || `https://www.google.com/search?q=${encodeURIComponent(value)}`,
+  };
+}
+
+
+function dedupeNarrativeText(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+
+  const paragraphs = text
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (paragraphs.length > 1) {
+    const deduped = paragraphs.filter((item, index) => index === 0 || item !== paragraphs[index - 1]);
+    return deduped.join("\n\n");
+  }
+
+  if (text.length % 2 === 0) {
+    const midpoint = text.length / 2;
+    const firstHalf = text.slice(0, midpoint).trim();
+    const secondHalf = text.slice(midpoint).trim();
+    if (firstHalf && firstHalf === secondHalf) {
+      return firstHalf;
+    }
+  }
+
+  return text;
 }
 
 
@@ -75,14 +108,15 @@ export default function ReadinessLens({ readiness, loading }) {
   const raw = readiness.automation_probability_raw;
   const chartData = [
     {
-      year: "2025",
+      label: "2025",
       completion: Number(String(readiness.wittgenstein_projection.secondary_completion_2025).replace("%", "")),
     },
     {
-      year: "2035",
+      label: "2035",
       completion: Number(String(readiness.wittgenstein_projection.secondary_completion_2035_projected).replace("%", "")),
     },
   ];
+  const readinessNarrative = dedupeNarrativeText(readiness.narrative);
 
   return (
     <section className="section-card">
@@ -154,7 +188,7 @@ export default function ReadinessLens({ readiness, loading }) {
             <h3>{copy.skillsAtRiskTitle}</h3>
           </div>
           <div className="table-wrap">
-            <table className="data-table">
+            <table className="data-table skills-risk-table">
               <thead>
                 <tr>
                   <th>{copy.skillColumn}</th>
@@ -200,21 +234,29 @@ export default function ReadinessLens({ readiness, loading }) {
             <h3>{copy.upskillingPathsTitle}</h3>
           </div>
           <div className="accordion-stack">
-            {readiness.adjacent_skills_recommended.map((path) => (
-              <details className="accordion-card" key={path.skill}>
-                <summary>
-                  <div>
-                    <strong>{path.skill}</strong>
-                    <p>{path.effort}</p>
-                  </div>
-                  <span className="accordion-tag">{copy.expandLabel}</span>
-                </summary>
-                <p>{path.why}</p>
-                <a className="inline-link" href={resourceHref(path.free_resource)} rel="noreferrer" target="_blank">
-                  {path.free_resource}
-                </a>
-              </details>
-            ))}
+            {readiness.adjacent_skills_recommended.map((path) => {
+              const resourceLink = resolveResourceLink(path.free_resource);
+              return (
+                <details className="accordion-card" key={path.skill}>
+                  <summary>
+                    <div className="accordion-copy">
+                      <strong>{path.skill}</strong>
+                      <p>{path.effort}</p>
+                    </div>
+                    <span className="accordion-trigger">
+                      <span>See details</span>
+                      <span className="accordion-chevron" aria-hidden="true">
+                        +
+                      </span>
+                    </span>
+                  </summary>
+                  <p>{path.why}</p>
+                  <a className="inline-link" href={resourceLink.href} rel="noreferrer" target="_blank">
+                    {resourceLink.label}
+                  </a>
+                </details>
+              );
+            })}
           </div>
         </article>
 
@@ -229,8 +271,8 @@ export default function ReadinessLens({ readiness, loading }) {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                <XAxis dataKey="year" stroke="#8B90A7" />
-                <YAxis stroke="#8B90A7" />
+                <XAxis dataKey="label" interval={0} stroke="#8B90A7" tickLine={false} type="category" />
+                <YAxis stroke="#8B90A7" tickFormatter={(value) => (Number(value) === 0 ? "" : value)} />
                 <Tooltip />
                 <Bar dataKey="completion" fill="#56D4B0" radius={[10, 10, 0, 0]} />
               </BarChart>
@@ -240,7 +282,7 @@ export default function ReadinessLens({ readiness, loading }) {
         </article>
       </div>
 
-      <blockquote className="narrative-block">{readiness.narrative}</blockquote>
+      {readinessNarrative ? <blockquote className="narrative-block">{readinessNarrative}</blockquote> : null}
     </section>
   );
 }

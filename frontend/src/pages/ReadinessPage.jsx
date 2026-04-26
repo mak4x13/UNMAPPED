@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import DataTransparencyPanel from "../components/DataTransparencyPanel";
 import OpportunityPanel from "../components/OpportunityPanel";
 import ReadinessLens from "../components/ReadinessLens";
-import SectionDivider from "../components/SectionDivider";
 import { COUNTRIES } from "../config/countries";
 import { getCopy } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
@@ -24,7 +23,7 @@ export default function ReadinessPage() {
     if (!readiness || readiness.country_code !== draft.country_code) {
       generateReadiness(draft.country_code);
     }
-    loadOpportunities(draft.country_code, profile.isco_unit_code);
+    loadOpportunities(draft.country_code, profile);
   }, [profile, draft.country_code, draft.ui_locale]);
 
   if (!profile) {
@@ -45,8 +44,11 @@ export default function ReadinessPage() {
       {error ? <div className="alert-banner">{error}</div> : null}
       <ReadinessLens readiness={readiness} loading={loadingReadiness} />
       {readiness ? <DataTransparencyPanel readiness={readiness} econData={econData} countryName={countryName} /> : null}
-      <SectionDivider label="OPPORTUNITIES" />
-      <OpportunityPanel opportunities={opportunities} loading={loadingOpportunities} />
+      <OpportunityPanel
+        loading={loadingOpportunities}
+        opportunities={opportunities}
+        profileLabel={profile.isco_unit_label}
+      />
     </div>
   );
 }

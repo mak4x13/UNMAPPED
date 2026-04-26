@@ -18,10 +18,10 @@ const BASE_STATS = [
     source: "ILO reference",
   },
   {
-    value: 0,
+    value: 3,
     suffix: "",
-    label: "Formal records capture most of that work",
-    source: "Reality check",
+    label: "Country signals are used to keep the readiness view grounded",
+    source: "Prototype method",
   },
 ];
 
@@ -77,12 +77,12 @@ export default function ImpactStatStrip() {
   const { draft } = useProfile();
   const country = COUNTRIES.find((entry) => entry.code === draft.country_code);
   const contextStat = {
-    value: INFORMAL_CONTEXT[draft.country_code] || 70,
-    suffix: "%",
+    value: country ? INFORMAL_CONTEXT[draft.country_code] || 70 : COUNTRIES.length,
+    suffix: country ? "%" : "",
     label: country
       ? `Of ${country.name}'s workforce is estimated to work informally`
-      : "Of many LMIC workforces, a large share works informally",
-    source: "Context estimate",
+      : "Country contexts currently supported in this prototype",
+    source: country ? "Context estimate" : "Current scope",
   };
   const impactStats = [BASE_STATS[0], contextStat, BASE_STATS[1]];
 

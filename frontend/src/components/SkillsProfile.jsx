@@ -115,7 +115,7 @@ export default function SkillsProfile({ profile, econData, loadingEcon }) {
         {!signals.length && loadingEcon ? [0, 1, 2].map((index) => <EconSignalBadge key={index} loading />) : null}
       </section>
 
-      <div className="section-inline">
+      <div className="skills-cta">
         <div>
           <p className="eyebrow">{copy.marketSignalEyebrow}</p>
           <p className="section-copy">{copy.marketSignalText}</p>

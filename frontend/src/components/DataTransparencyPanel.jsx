@@ -1,5 +1,5 @@
-function findSignal(signals, indicatorId) {
-  return signals.find((signal) => signal.indicator_id === indicatorId);
+function findSignal(signals, matcher) {
+  return signals.find((signal) => matcher(signal));
 }
 
 function formatStatusRow({ live, primaryLabel, liveText, cachedText, meta }) {
@@ -12,8 +12,8 @@ function formatStatusRow({ live, primaryLabel, liveText, cachedText, meta }) {
 
 export default function DataTransparencyPanel({ readiness, econData, countryName }) {
   const signals = econData?.signals || [];
-  const youth = findSignal(signals, "SDG_0851");
-  const gdp = findSignal(signals, "NY.GDP.PCAP.CD");
+  const youth = findSignal(signals, (signal) => signal.label?.includes("Youth Unemployment"));
+  const gdp = findSignal(signals, (signal) => signal.label?.includes("GDP per capita"));
   const fetchedDate = econData?.fetched_at?.slice(0, 10) || new Date().toISOString().slice(0, 10);
   const live = econData?.data_freshness === "live";
   const factor =
@@ -27,14 +27,14 @@ export default function DataTransparencyPanel({ readiness, econData, countryName
       primaryLabel: "ILO ILOSTAT",
       liveText: `Youth unemployment ${youth?.value || "Unavailable"} - fetched live`,
       cachedText: "Cached data used (API unavailable)",
-      meta: `[${fetchedDate} - SDG_0851]`,
+      meta: `[${fetchedDate} - ${youth?.indicator_id || "Unknown indicator"}]`,
     }),
     formatStatusRow({
       live,
       primaryLabel: "World Bank WDI",
       liveText: `GDP per capita ${gdp?.value || "Unavailable"} - fetched live`,
       cachedText: "Cached data used (API unavailable)",
-      meta: `[${fetchedDate} - NY.GDP.PCAP.CD]`,
+      meta: `[${fetchedDate} - ${gdp?.indicator_id || "Unknown indicator"}]`,
     }),
     {
       icon: "\u2713",

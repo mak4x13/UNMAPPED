@@ -7,7 +7,7 @@ import { getLocaleLabel, resolveSupportedLocale, resolveSupportedVoiceLocale } f
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:7860";
 
 const STORAGE_KEY = "unmapped-profile-state";
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 6;
 const ProfileContext = createContext(null);
 
 const defaultDraft = {
@@ -96,14 +96,26 @@ export function ProfileProvider({ children }) {
     }
   }
 
-  async function loadOpportunities(countryCode = draft.country_code, iscoUnitCode = profile?.isco_unit_code) {
-    if (!countryCode || !iscoUnitCode) {
+  async function loadOpportunities(countryCode = draft.country_code, activeProfile = profile) {
+    if (!countryCode || !activeProfile?.isco_unit_code) {
       return null;
     }
     setLoadingOpportunities(true);
     try {
+      const profileText = [
+        ...(activeProfile.esco_skills || []),
+        ...(activeProfile.informal_skills_extracted || []),
+        activeProfile.profile_summary || "",
+      ]
+        .filter(Boolean)
+        .join(" | ");
       const response = await axios.get(`${API_BASE_URL}/api/opportunities`, {
-        params: { country_code: countryCode, isco_unit_code: iscoUnitCode },
+        params: {
+          country_code: countryCode,
+          isco_unit_code: activeProfile.isco_unit_code,
+          profile_label: activeProfile.isco_unit_label,
+          profile_text: profileText,
+        },
       });
       setOpportunities(response.data);
       return response.data;
@@ -160,12 +172,12 @@ export function ProfileProvider({ children }) {
     setError(null);
     try {
       const response = await axios.post(`${API_BASE_URL}/api/profile`, payload);
-      setProfile(response.data);
+      setProfile({ ...response.data, ui_locale: payload.ui_locale });
       await Promise.all([
         loadEconData(payload.country_code),
-        loadOpportunities(payload.country_code, response.data.isco_unit_code),
+        loadOpportunities(payload.country_code, response.data),
       ]);
-      return response.data;
+      return { ...response.data, ui_locale: payload.ui_locale };
     } catch (err) {
       setError(err.response?.data?.detail || "Unable to generate skills profile.");
       throw err;
@@ -235,7 +247,7 @@ export function ProfileProvider({ children }) {
         return;
       }
       if (profile?.isco_unit_code) {
-        await loadOpportunities(draft.country_code, profile.isco_unit_code);
+        await loadOpportunities(draft.country_code, profile);
       }
     }
     hydrateCountryContext();

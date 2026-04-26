@@ -24,7 +24,11 @@ Map the person's experience to the most appropriate ISCO-08 unit group (4-digit 
 Be honest: if the description is ambiguous, reflect that in a lower confidence score.
 Extract concrete, demonstrable skills only - do not invent skills not evidenced in the description.
 Human-readable fields should be easy for the person to understand. Keep classification fields in standard English labels.
+If the description contains two or more distinct activities, identify the PRIMARY livelihood activity first. Use the activity that appears to generate the main income, main work time, or core trade identity for the ISCO mapping.
+Do NOT choose an ISCO code just because an activity is mentioned later in the sentence.
+Map the PRIMARY livelihood activity to ISCO. Put secondary, part-time, weekend, seasonal, or side activities into informal_skills_extracted instead of letting them override the ISCO code.
 When the description mixes technical repair work with customer-facing sales, classify to the technical occupation if repair/diagnosis is the core task and sales appears secondary.
+If the description mentions pipes, leakage, taps, drainage, water pumps, fittings, or bathroom/kitchen water work, classify to plumbing-related work rather than electronics repair.
 """
 
 SKILLS_MAPPING_USER = """
@@ -35,6 +39,10 @@ Years of experience: {years_experience}
 Description: "{informal_description}"
 Languages: {languages}
 Follow-up interview answers: {follow_up_answers}
+
+If the description includes more than one activity, first decide which one is the primary livelihood activity.
+Use the primary livelihood activity for isco_unit_code and isco_unit_label.
+Record secondary or side activities as additional evidence in informal_skills_extracted where relevant.
 
 Return JSON matching exactly this schema:
 {{
@@ -131,6 +139,45 @@ Return JSON exactly matching this schema:
 PROFILE_RULES = [
     {
         "match": [
+            "plumb",
+            "plumbing",
+            "pipe",
+            "pipes",
+            "pipeline",
+            "water line",
+            "water lines",
+            "tap",
+            "taps",
+            "faucet",
+            "leak",
+            "leakage",
+            "drain",
+            "drainage",
+            "sink",
+            "toilet",
+            "bathroom fitting",
+            "bathroom fittings",
+            "water pump",
+            "water pumps",
+        ],
+        "unit_code": "7126",
+        "esco_skills": [
+            "install plumbing systems",
+            "install water pumps",
+            "maintain pumps and motors",
+            "perform preventive maintenance",
+            "source spare parts",
+        ],
+        "informal": [
+            "leak detection",
+            "pipe fitting",
+            "on-site installation",
+            "field troubleshooting",
+            "client coordination",
+        ],
+    },
+    {
+        "match": [
             "phone repair",
             "repair phones",
             "phone repairs",
@@ -163,7 +210,20 @@ PROFILE_RULES = [
         ],
     },
     {
-        "match": ["car repair", "auto repair", "mechanic", "garage", "engine"],
+        "match": [
+            "car repair",
+            "auto repair",
+            "mechanic",
+            "garage",
+            "engine",
+            "motorcycle",
+            "motorcycles",
+            "motorbike",
+            "motorbikes",
+            "bike repair",
+            "repair motorcycles",
+            "repair motorcycle",
+        ],
         "unit_code": "7231",
         "esco_skills": [
             "repair vehicles",
@@ -262,61 +322,131 @@ PROFILE_RULES = [
     },
 ]
 
-COUNTRY_ADJACENCIES = {
-    "GHA": [
+READINESS_ADJACENCIES = {
+    "7421": [
         {
-            "skill": "IoT device configuration",
-            "effort": "3-6 months",
-            "why": "Smart home and fintech-adjacent device support is growing in urban Ghana.",
-            "free_resource": "Cisco Networking Academy - Introduction to IoT",
+            "skill": "Remote IT support",
+            "effort": "2-4 months",
+            "why": "Troubleshooting logic, device setup, and customer explanation already overlap with entry-level support work.",
+            "free_resource": "Cisco Networking Academy - IT Essentials",
         },
         {
             "skill": "Solar panel installation and maintenance",
             "effort": "2-4 months",
-            "why": "Off-grid and backup power systems continue to expand across Ghanaian households and SMEs.",
+            "why": "Tool use, field diagnostics, and installation habits transfer well into energy-related service work.",
             "free_resource": "GOGLA training modules",
         },
     ],
-    "PAK": [
+    "7126": [
         {
-            "skill": "Remote IT support",
+            "skill": "Water pump installation and maintenance",
             "effort": "2-4 months",
-            "why": "Pakistan's freelance and outsourced support market creates demand for device and software support skills.",
-            "free_resource": "Cisco Networking Academy - IT Essentials",
+            "why": "This stays close to pipe fitting, leakage diagnosis, and site-based installation work you already understand.",
+            "free_resource": "Alison technical courses",
         },
         {
-            "skill": "E-commerce operations support",
+            "skill": "Building maintenance coordination",
             "effort": "1-3 months",
-            "why": "Small merchants increasingly need digital catalog, order, and customer support workflows.",
+            "why": "Plumbing work often opens into broader facilities maintenance where quick response and recurring service matter.",
             "free_resource": "Google Digital Garage",
         },
     ],
-    "KEN": [
+    "7231": [
         {
-            "skill": "Mobile money agent systems support",
-            "effort": "1-3 months",
-            "why": "Kenya's digital payments ecosystem rewards technicians who understand device setup and support.",
-            "free_resource": "Coursera - Digital Skills: User Experience (audit mode)",
+            "skill": "Generator and small-engine servicing",
+            "effort": "2-4 months",
+            "why": "Mechanical diagnostics and repair routines transfer into nearby equipment service markets.",
+            "free_resource": "Alison technical courses",
         },
         {
-            "skill": "Solar home system servicing",
-            "effort": "2-4 months",
-            "why": "Distributed energy products are widespread and require field troubleshooting.",
-            "free_resource": "GOGLA training modules",
+            "skill": "Fleet maintenance recordkeeping",
+            "effort": "1-3 months",
+            "why": "Workshop experience becomes more portable when paired with basic service planning and maintenance logs.",
+            "free_resource": "CFI financial literacy resources",
         },
     ],
-    "BGD": [
+    "5223": [
         {
-            "skill": "Industrial machine maintenance basics",
-            "effort": "3-6 months",
-            "why": "Factory modernization is increasing demand for technicians who can maintain semi-automated equipment.",
-            "free_resource": "Alison - Diploma in Electrical Studies",
+            "skill": "E-commerce operations support",
+            "effort": "1-3 months",
+            "why": "Sales, customer handling, and stock awareness already overlap with online order workflows.",
+            "free_resource": "Google Digital Garage",
         },
         {
-            "skill": "E-commerce device and logistics support",
+            "skill": "Basic bookkeeping and sales records",
             "effort": "1-3 months",
-            "why": "Bangladesh's growing digital commerce sector needs operational support skills.",
+            "why": "Small businesses increasingly value workers who can track money and inventory more clearly.",
+            "free_resource": "CFI financial literacy resources",
+        },
+    ],
+    "7531": [
+        {
+            "skill": "Garment quality assurance",
+            "effort": "1-3 months",
+            "why": "Attention to fit, consistency, and finishing can transfer into line-based quality checks.",
+            "free_resource": "Alison technical courses",
+        },
+        {
+            "skill": "Online custom order management",
+            "effort": "1-3 months",
+            "why": "Tailoring becomes more resilient when paired with simple digital order handling and client communication.",
+            "free_resource": "Google Digital Garage",
+        },
+    ],
+    "2330": [
+        {
+            "skill": "Digital literacy facilitation",
+            "effort": "1-3 months",
+            "why": "Teaching skill transfers well into practical training for first-time users of digital tools.",
+            "free_resource": "Google Digital Garage",
+        },
+        {
+            "skill": "Structured learning support",
+            "effort": "1-3 months",
+            "why": "Lesson planning and learner support can broaden into tutoring, program delivery, and educational facilitation.",
+            "free_resource": "Coursera - Digital Skills: User Experience (audit mode)",
+        },
+    ],
+    "2513": [
+        {
+            "skill": "Quality assurance testing",
+            "effort": "1-3 months",
+            "why": "Testing and debugging are accessible extensions of software problem-solving skills.",
             "free_resource": "Google Career Certificates - digital support resources",
+        },
+        {
+            "skill": "IT support operations",
+            "effort": "1-3 months",
+            "why": "Developer troubleshooting habits also translate into entry-level systems and user support roles.",
+            "free_resource": "Cisco Networking Academy - IT Essentials",
+        },
+    ],
+    "5141": [
+        {
+            "skill": "Appointment and client record management",
+            "effort": "1-3 months",
+            "why": "Service workers become more resilient when repeat clients and schedules are handled more systematically.",
+            "free_resource": "Google Digital Garage",
+        },
+        {
+            "skill": "Product advisory and retail support",
+            "effort": "1-3 months",
+            "why": "Beauty work already depends on trust and recommendation, which carries into product-led income streams.",
+            "free_resource": "CFI financial literacy resources",
+        },
+    ],
+    "default": [
+        {
+            "skill": "Digital record keeping",
+            "effort": "1-3 months",
+            "why": "Basic digital administration makes many informal skills easier to explain and reuse in other settings.",
+            "free_resource": "Google Digital Garage",
+        },
+        {
+            "skill": "Customer support workflows",
+            "effort": "1-3 months",
+            "why": "Clear communication and repeatable service processes raise portability in many local labor markets.",
+            "free_resource": "Cisco Networking Academy - IT Essentials",
         },
     ],
 }
@@ -372,6 +502,54 @@ def _combined_experience_text(payload: dict) -> str:
     for item in follow_ups:
         combined.append(f"{item['question']}: {item['answer']}")
     return " ".join(combined).strip().lower()
+
+
+def _fallback_profile_rule(description: str) -> dict[str, Any]:
+    broad_rules = [
+        ("7126", ["pipe", "water", "tap", "toilet", "drain", "pump", "leak"]),
+        ("2330", ["teach", "teacher", "tutor", "lesson", "class"]),
+        ("7531", ["tailor", "sew", "garment", "alteration"]),
+        ("5141", ["hair", "barber", "salon", "beauty"]),
+        ("2513", ["software", "developer", "coding", "website", "frontend", "backend"]),
+        ("7231", ["car", "vehicle", "engine", "garage", "motorcycle"]),
+        ("7421", ["repair", "fix", "diagnose", "install", "device", "electronic", "laptop", "phone"]),
+        ("5223", ["sell", "sales", "shop", "store", "cash", "customer"]),
+    ]
+    for unit_code, keywords in broad_rules:
+        if any(keyword in description for keyword in keywords):
+            return next(rule for rule in PROFILE_RULES if rule["unit_code"] == unit_code)
+    return next(rule for rule in PROFILE_RULES if rule["unit_code"] == "5223")
+
+
+def _best_profile_rule_match(description: str) -> tuple[dict[str, Any], int]:
+    selected = None
+    best_hits = 0
+    for rule in PROFILE_RULES:
+        hits = sum(keyword in description for keyword in rule["match"])
+        if hits > best_hits:
+            best_hits = hits
+            selected = rule
+
+    if selected is None:
+        return _fallback_profile_rule(description), 0
+
+    return selected, best_hits
+
+
+def _secondary_activity_signals(description: str, primary_unit_code: str) -> list[str]:
+    secondary_patterns = [
+        ("2330", ["teach", "teacher", "tutor", "quran", "lesson", "students"], "part-time teaching"),
+        ("7231", ["motorcycle", "motorcycles", "motorbike", "mechanic", "garage", "engine"], "motorcycle repair"),
+        ("7126", ["plumb", "pipe", "drain", "tap", "water pump", "leak"], "plumbing side work"),
+        ("5223", ["sell", "sales", "shop", "store", "customer"], "sales and customer handling"),
+    ]
+    results = []
+    for unit_code, keywords, label in secondary_patterns:
+        if unit_code == primary_unit_code:
+            continue
+        if any(keyword in description for keyword in keywords):
+            results.append(label)
+    return results[:2]
 
 
 def _profile_summary(unit_label: str, years_experience: int, locale: str) -> str:
@@ -548,13 +726,7 @@ def heuristic_interview_questions(payload: dict, country_config: dict):
 def heuristic_profile_mapping(payload: dict, country_config: dict):
     locale = _preferred_locale(payload)
     description = _combined_experience_text(payload)
-    selected = PROFILE_RULES[-1]
-    best_hits = -1
-    for rule in PROFILE_RULES:
-        hits = sum(keyword in description for keyword in rule["match"])
-        if hits > best_hits:
-            best_hits = hits
-            selected = rule
+    selected, best_hits = _best_profile_rule_match(description)
 
     unit = get_isco_unit(selected["unit_code"])
     years_experience = int(payload.get("years_experience", 0))
@@ -562,13 +734,18 @@ def heuristic_profile_mapping(payload: dict, country_config: dict):
     portability_score = min(score_base + (8 if len(payload.get("languages", [])) > 1 else 0), 92)
     confidence = 0.87 if best_hits >= 2 else 0.71 if best_hits == 1 else 0.54
 
+    informal_skills = list(selected["informal"][:6])
+    for signal in _secondary_activity_signals(description, unit["code"]):
+        if signal not in informal_skills:
+            informal_skills.append(signal)
+
     return {
         "isco_major_group": unit["major_group"],
         "isco_major_label": get_major_group_label(unit["major_group"]),
         "isco_unit_code": unit["code"],
         "isco_unit_label": unit["label"],
         "esco_skills": selected["esco_skills"][:6],
-        "informal_skills_extracted": selected["informal"][:6],
+        "informal_skills_extracted": informal_skills[:6],
         "credential_labor_market_signal": (
             "Low - informal skills are real but may be hard for formal employers to verify quickly."
         ),
@@ -614,7 +791,7 @@ def heuristic_readiness_assessment(payload: dict, country_config: dict, calibrat
             "reason": "Learning quickly is a resilience skill that helps you move into adjacent work as markets shift.",
         },
     ]
-    adjacent = COUNTRY_ADJACENCIES.get(payload["country_code"], [])
+    adjacent = READINESS_ADJACENCIES.get(payload.get("isco_unit_code"), READINESS_ADJACENCIES["default"])
     return {
         "risk_level": risk_level,
         "risk_horizon_years": horizon,
@@ -662,6 +839,7 @@ async def generate_interview_questions(payload: dict, country_config: dict):
 async def generate_profile_mapping(payload: dict, country_config: dict, esco_skills: list[str]):
     candidates = []
     description = _combined_experience_text(payload)
+    matched_rule, matched_hits = _best_profile_rule_match(description)
     for rule in PROFILE_RULES:
         if any(keyword in description for keyword in rule["match"]):
             unit = get_isco_unit(rule["unit_code"])
@@ -687,6 +865,8 @@ async def generate_profile_mapping(payload: dict, country_config: dict, esco_ski
         unit = get_isco_unit(str(response.get("isco_unit_code", "")))
         if not unit:
             raise ValueError("Groq returned an unknown ISCO code")
+        if matched_hits >= 2 and unit["code"] != matched_rule["unit_code"]:
+            return heuristic_profile_mapping(payload, country_config)
         response["isco_unit_code"] = unit["code"]
         response["isco_unit_label"] = unit["label"]
         response["isco_major_group"] = unit["major_group"]
