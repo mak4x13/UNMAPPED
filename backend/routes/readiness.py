@@ -15,6 +15,20 @@ from services.econdata_service import get_country_econdata
 
 router = APIRouter(tags=["readiness"])
 
+NEET_FALLBACK = {
+    "GHA": "28.4%",
+    "PAK": "20.9%",
+    "KEN": "21.3%",
+    "BGD": "27.8%",
+}
+
+ICT_GROWTH_FALLBACK = {
+    "GHA": "+6.2% YoY",
+    "PAK": "+8.4% YoY",
+    "KEN": "+7.1% YoY",
+    "BGD": "+9.0% YoY",
+}
+
 
 class ReadinessRequest(BaseModel):
     isco_unit_code: str = Field(..., min_length=4, max_length=4)
@@ -101,12 +115,12 @@ async def create_readiness(payload: ReadinessRequest):
                 "indicator": "SL.UEM.1524.ZS",
             },
             "neet_rate": {
-                "value": "28.4%" if payload.country_code == "GHA" else "20.9%" if payload.country_code == "PAK" else "21.3%" if payload.country_code == "KEN" else "27.8%",
+                "value": NEET_FALLBACK.get(payload.country_code, "Unavailable"),
                 "source": "Country fallback cache",
                 "indicator": "SL.UEM.NEET.ZS",
             },
             "ict_sector_employment_growth": {
-                "value": "+6.2% YoY" if payload.country_code == "GHA" else "+8.4% YoY" if payload.country_code == "PAK" else "+7.1% YoY" if payload.country_code == "KEN" else "+9.0% YoY",
+                "value": ICT_GROWTH_FALLBACK.get(payload.country_code, "Unavailable"),
                 "source": "Country fallback cache",
                 "indicator": "BX.GSR.CCIS.ZS",
             },

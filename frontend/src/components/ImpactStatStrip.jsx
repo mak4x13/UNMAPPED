@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { COUNTRIES } from "../config/countries";
+import { useCountries } from "../config/countries";
 import { useProfile } from "../hooks/useProfile";
 
 const INFORMAL_CONTEXT = {
@@ -75,9 +75,10 @@ export default function ImpactStatStrip() {
   const containerRef = useRef(null);
   const [active, setActive] = useState(false);
   const { draft } = useProfile();
-  const country = COUNTRIES.find((entry) => entry.code === draft.country_code);
+  const { countryCount, getCountryByCode } = useCountries();
+  const country = getCountryByCode(draft.country_code);
   const contextStat = {
-    value: country ? INFORMAL_CONTEXT[draft.country_code] || 70 : COUNTRIES.length,
+    value: country ? INFORMAL_CONTEXT[draft.country_code] || 70 : countryCount,
     suffix: country ? "%" : "",
     label: country
       ? `Of ${country.name}'s workforce is estimated to work informally`

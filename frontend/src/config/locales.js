@@ -48,27 +48,28 @@ export function getVoiceLabel(code) {
 }
 
 export function getCountryLocaleOptions(countryCode) {
-  const allowed = COUNTRY_LOCALE_OPTIONS[countryCode] || ["en"];
+  const allowed = COUNTRY_LOCALE_OPTIONS[String(countryCode || "").toUpperCase()] || ["en"];
   return LOCALE_OPTIONS.filter((item) => allowed.includes(item.code));
 }
 
 export function getCountryVoiceOptions(countryCode) {
-  const allowed = COUNTRY_VOICE_OPTIONS[countryCode] || ["en"];
+  const allowed = COUNTRY_VOICE_OPTIONS[String(countryCode || "").toUpperCase()] || ["en"];
   return VOICE_OPTIONS.filter((item) => allowed.includes(item.code));
 }
 
 export function resolveSupportedLocale(countryCode, desiredLocale) {
-  const allowed = COUNTRY_LOCALE_OPTIONS[countryCode] || ["en"];
+  const allowed = COUNTRY_LOCALE_OPTIONS[String(countryCode || "").toUpperCase()] || ["en"];
   return allowed.includes(desiredLocale) ? desiredLocale : allowed[0];
 }
 
 export function resolveSupportedVoiceLocale(countryCode, desiredLocale) {
-  const allowed = COUNTRY_VOICE_OPTIONS[countryCode] || ["en"];
+  const allowed = COUNTRY_VOICE_OPTIONS[String(countryCode || "").toUpperCase()] || ["en"];
   return allowed.includes(desiredLocale) ? desiredLocale : allowed[0];
 }
 
 export function getSpeechRecognitionTag(countryCode, voiceLocale) {
-  return COUNTRY_SPEECH_TAGS[countryCode]?.[voiceLocale] || DEFAULT_SPEECH_TAGS[voiceLocale] || "en-US";
+  const normalizedCode = String(countryCode || "").toUpperCase();
+  return COUNTRY_SPEECH_TAGS[normalizedCode]?.[voiceLocale] || DEFAULT_SPEECH_TAGS[voiceLocale] || "en-US";
 }
 
 export function getVoiceGuidance(locale, voiceLocale) {

@@ -17,6 +17,22 @@ def load_country_configs():
     return _load_json("country_configs.json")
 
 
+def list_country_summaries():
+    summaries = []
+    for code, config in load_country_configs().items():
+        summaries.append(
+            {
+                "code": code,
+                "name": config["name"],
+                "iso2": config["iso2"],
+                "region": config["region"],
+                "economy_type": config["economy_type"],
+                "opportunity_types": config.get("opportunity_types", []),
+            }
+        )
+    return summaries
+
+
 @lru_cache(maxsize=1)
 def load_taxonomy():
     return _load_json("isco08_taxonomy.json")

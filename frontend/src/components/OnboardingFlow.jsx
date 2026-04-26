@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { COUNTRIES } from "../config/countries";
+import { useCountries } from "../config/countries";
 import { getCopy, getSpeechRecognitionTag } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
 import CountrySelector from "./CountrySelector";
@@ -166,6 +166,7 @@ export default function OnboardingFlow() {
     loadingProfile,
     error,
   } = useProfile();
+  const { countries, loadingCountries, countriesError, getCountryByCode } = useCountries();
 
   const copy = getCopy(draft.ui_locale);
   const [step, setStep] = useState(0);
@@ -175,7 +176,7 @@ export default function OnboardingFlow() {
   const [showLanguageOtherInput, setShowLanguageOtherInput] = useState(false);
   const [followUpOtherMode, setFollowUpOtherMode] = useState({});
 
-  const selectedCountry = COUNTRIES.find((country) => country.code === draft.country_code);
+  const selectedCountry = getCountryByCode(draft.country_code);
   const questions = interview?.follow_up_questions || [];
   const currentQuestion = questions[followUpIndex] || null;
   const currentAnswer = String(interview?.answers?.[currentQuestion?.question_id] || "");
@@ -387,8 +388,10 @@ export default function OnboardingFlow() {
           <div className="question-block">
             <h2>Where are you from?</h2>
           </div>
+          {countriesError ? <div className="alert-banner">{countriesError}</div> : null}
           <div className="country-tiles-grid">
-            {COUNTRIES.map((country) => (
+            {loadingCountries ? <div className="section-copy">Loading country list...</div> : null}
+            {countries.map((country) => (
               <button
                 key={country.code}
                 className={country.code === draft.country_code ? "country-choice is-active" : "country-choice"}
@@ -401,7 +404,7 @@ export default function OnboardingFlow() {
                 <span className="country-choice-flag">{country.flag}</span>
                 <span className="country-choice-name">{country.name}</span>
                 <span className="country-choice-meta">
-                  {country.region} - {country.context}
+                  {country.region} - {country.economy_type}
                 </span>
               </button>
             ))}

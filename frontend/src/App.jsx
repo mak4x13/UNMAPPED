@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import CountrySelector from "./components/CountrySelector";
@@ -9,6 +10,17 @@ import Home from "./pages/Home";
 import PolicyPage from "./pages/PolicyPage";
 import ProfilePage from "./pages/ProfilePage";
 import ReadinessPage from "./pages/ReadinessPage";
+
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
 
 
 function AppHeader() {
@@ -84,6 +96,7 @@ function AppHeader() {
 export default function App() {
   return (
     <div className="app-shell">
+      <ScrollToTop />
       <AppHeader />
       <main className="page-shell">
         <Routes>

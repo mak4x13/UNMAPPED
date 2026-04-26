@@ -5,15 +5,12 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter
 
-from services.data_store import get_country_config, get_isco_unit, lookup_automation_probability
+from services.data_store import get_country_config, get_isco_unit, load_country_configs, lookup_automation_probability
 from services.econdata_service import get_country_econdata
 from services.worldbank_service import fetch_world_bank_indicator
 
 
 router = APIRouter(tags=["policy"])
-
-
-COUNTRIES = ["GHA", "PAK", "KEN", "BGD"]
 
 NEET_FALLBACK = {
     "GHA": 28.4,
@@ -35,6 +32,10 @@ ILLUSTRATIVE_TOP_CODES = {
     "KEN": ["4110", "9412", "5223", "8322", "6111"],
     "BGD": ["8153", "9412", "4311", "8160", "7531"],
 }
+
+DEFAULT_NEET_FALLBACK = 25.0
+DEFAULT_ANCHOR_CODE = "5223"
+DEFAULT_TOP_CODES = ["5223", "4311", "8153", "6111", "8322"]
 
 
 def _utc_now() -> str:
@@ -61,12 +62,16 @@ def _calibrated_risk(country_code: str, isco_unit_code: str) -> float:
     return round(raw * country_config["lmic_calibration_factor"], 2)
 
 
+def _country_codes():
+    return list(load_country_configs().keys())
+
+
 async def _country_row(country_code: str):
     country_config = get_country_config(country_code)
     econdata = await get_country_econdata(country_code)
     neet_source = "cached"
     neet_year = None
-    neet_value = NEET_FALLBACK[country_code]
+    neet_value = NEET_FALLBACK.get(country_code, DEFAULT_NEET_FALLBACK)
     neet_display = f"{neet_value:.1f}%"
 
     try:
@@ -81,8 +86,8 @@ async def _country_row(country_code: str):
     youth_signal = _find_signal(econdata["signals"], "SDG_0851")
     gdp_signal = _find_signal(econdata["signals"], "NY.GDP.PCAP.CD")
     secondary_signal = _find_signal(econdata["signals"], "SE.SEC.CUAT.LO.ZS")
-    anchor_code = ILLUSTRATIVE_ANCHOR_CODES[country_code]
-    anchor_unit = get_isco_unit(anchor_code)
+    anchor_code = ILLUSTRATIVE_ANCHOR_CODES.get(country_code, DEFAULT_ANCHOR_CODE)
+    anchor_unit = get_isco_unit(anchor_code) or {"label": "Illustrative benchmark occupation"}
 
     return {
         "code": country_code,
@@ -113,8 +118,10 @@ async def _country_row(country_code: str):
 def _top_risk_rows(country_code: str):
     country_config = get_country_config(country_code)
     rows = []
-    for code in ILLUSTRATIVE_TOP_CODES[country_code]:
+    for code in ILLUSTRATIVE_TOP_CODES.get(country_code, DEFAULT_TOP_CODES):
         unit = get_isco_unit(code)
+        if not unit:
+            continue
         rows.append(
             {
                 "country_code": country_code,
@@ -131,9 +138,10 @@ def _top_risk_rows(country_code: str):
 
 @router.get("/policy-dashboard")
 async def get_policy_dashboard():
-    countries = await asyncio.gather(*[_country_row(country_code) for country_code in COUNTRIES])
+    country_codes = _country_codes()
+    countries = await asyncio.gather(*[_country_row(country_code) for country_code in country_codes])
     top_risk_rows = []
-    for country_code in COUNTRIES:
+    for country_code in country_codes:
         top_risk_rows.extend(_top_risk_rows(country_code))
 
     return {

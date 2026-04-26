@@ -876,6 +876,27 @@ select:focus {
   background: var(--danger);
 }
 
+.risk-bar-block {
+  display: grid;
+  gap: 8px;
+}
+
+.risk-bar-scale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.risk-bar-scale span {
+  white-space: nowrap;
+}
+
 .summary-block {
   border-left: 3px solid var(--primary);
   padding-left: 16px;
@@ -1301,6 +1322,10 @@ select:focus {
 
   .info-strip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .impact-strip > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   .header-actions {

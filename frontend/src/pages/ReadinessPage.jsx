@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import DataTransparencyPanel from "../components/DataTransparencyPanel";
 import OpportunityPanel from "../components/OpportunityPanel";
 import ReadinessLens from "../components/ReadinessLens";
-import { COUNTRIES } from "../config/countries";
+import { useCountries } from "../config/countries";
 import { getCopy } from "../config/locales";
 import { useProfile } from "../hooks/useProfile";
 import { useReadiness } from "../hooks/useReadiness";
@@ -13,8 +13,9 @@ import { useReadiness } from "../hooks/useReadiness";
 export default function ReadinessPage() {
   const { profile, draft, econData, opportunities, loadOpportunities, loadingOpportunities } = useProfile();
   const { readiness, loadingReadiness, error, generateReadiness } = useReadiness();
+  const { getCountryByCode } = useCountries();
   const copy = getCopy(draft.ui_locale);
-  const countryName = COUNTRIES.find((country) => country.code === draft.country_code)?.name || draft.country_code;
+  const countryName = getCountryByCode(draft.country_code)?.name || draft.country_code;
 
   useEffect(() => {
     if (!profile) {

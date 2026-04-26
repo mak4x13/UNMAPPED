@@ -28,13 +28,13 @@ function CustomScatterTooltip({ active, payload, copy }) {
     <div className="chart-tooltip">
       <strong>{point.name}</strong>
       <p>
-        {copy.tooltipYouthUnemployment}: {point.youthUnemploymentDisplay}
+        {copy.tooltipYouthUnemployment}: {point.youth_unemployment_display}
       </p>
       <p>
-        {copy.tooltipIllustrativeRisk}: {point.calibratedRisk.toFixed(2)}
+        {copy.tooltipIllustrativeRisk}: {point.calibrated_risk.toFixed(2)}
       </p>
       <p>
-        {copy.tooltipOccupationAnchor}: {point.anchorOccupationLabel}
+        {copy.tooltipOccupationAnchor}: {point.anchor_occupation_label}
       </p>
     </div>
   );
@@ -130,7 +130,7 @@ export default function PolicyDashboard() {
               <span className="stat-label">Configured countries</span>
               <strong className="stat-number">{rows.length}</strong>
             </div>
-            <p className="section-copy">The dashboard compares the four configured LMIC contexts side by side.</p>
+            <p className="section-copy">The dashboard compares {rows.length} configured LMIC contexts side by side.</p>
           </article>
 
           <article className="sub-card">
@@ -154,7 +154,7 @@ export default function PolicyDashboard() {
             </div>
             <p className="section-copy">
               {summary.highestRisk
-                ? `${summary.highestRisk.name}: ${summary.highestRisk.anchorOccupationLabel}`
+                ? `${summary.highestRisk.name}: ${summary.highestRisk.anchor_occupation_label}`
                 : "No benchmark available."}
             </p>
           </article>
@@ -175,7 +175,7 @@ export default function PolicyDashboard() {
                   <XAxis dataKey="name" stroke="#8FA89E" />
                   <YAxis stroke="#8FA89E" />
                   <Tooltip />
-                  <Bar dataKey="neetRate" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="neet_rate" radius={[6, 6, 0, 0]}>
                     {rows.map((entry) => (
                       <Cell key={entry.code} fill={entry.data_freshness === "live" ? "#00C896" : "#F5A623"} />
                     ))}
@@ -195,8 +195,8 @@ export default function PolicyDashboard() {
               <ResponsiveContainer width="100%" height={260}>
                 <ScatterChart>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                  <XAxis dataKey="youthUnemployment" name={copy.tooltipYouthUnemployment} unit="%" stroke="#8FA89E" />
-                  <YAxis dataKey="calibratedRisk" name={copy.calibratedRisk} stroke="#8FA89E" />
+                  <XAxis dataKey="youth_unemployment" name={copy.tooltipYouthUnemployment} unit="%" stroke="#8FA89E" />
+                  <YAxis dataKey="calibrated_risk" name={copy.calibratedRisk} stroke="#8FA89E" />
                   <Tooltip content={<CustomScatterTooltip copy={copy} />} />
                   <Scatter data={rows} fill="#00C896" />
                 </ScatterChart>

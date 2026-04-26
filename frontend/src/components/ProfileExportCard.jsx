@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-import { COUNTRIES } from "../config/countries";
+import { useCountries } from "../config/countries";
 
 function ExportCardContent({ profile, country }) {
   return (
@@ -45,7 +45,8 @@ function ExportCardContent({ profile, country }) {
 export default function ProfileExportCard({ profile, countryCode }) {
   const exportRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
-  const country = COUNTRIES.find((entry) => entry.code === countryCode);
+  const { getCountryByCode } = useCountries();
+  const country = getCountryByCode(countryCode);
 
   async function downloadCard() {
     if (!exportRef.current || !window.html2canvas) {

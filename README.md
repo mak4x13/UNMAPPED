@@ -1,43 +1,26 @@
 # UNMAPPED
 
-UNMAPPED is a skills-intelligence platform for youth in low- and middle-income countries who have real work experience but weak formal credentials. It turns informal education and work histories into a portable skills profile, then shows an LMIC-calibrated AI readiness and displacement-risk view with country context.
+UNMAPPED is a hackathon-ready skills-intelligence prototype for youth in low- and middle-income countries who have real work experience but weak formal proof. It turns informal work histories into a portable profile, then shows an LMIC-calibrated AI readiness and displacement-risk view with transparent country context.
 
-This project was built for a hackathon challenge track linked to the World Bank Youth Summit. It is an independent project and is not affiliated with or endorsed by the World Bank.
+This project was built for a challenge track linked to the World Bank Youth Summit. It is an independent project and is not affiliated with or endorsed by the World Bank.
 
-## What The Platform Does
+## What It Does
 
-- Guides users through a low-friction intake flow with simple language
-- Supports optional speech-to-text input for selected country/language combinations
-- Uses agentic follow-up questions to improve skills mapping accuracy
-- Maps experience into an ISCO-08 occupation profile with ESCO-style skills
+- Guides users through a low-friction, one-question-at-a-time intake flow
+- Supports optional speech-to-text input where browser support exists
+- Uses follow-up questions to improve skills mapping accuracy
+- Maps informal work into an ISCO-08 occupation profile with ESCO-aligned skills
 - Shows a country-calibrated readiness and automation-risk view
-- Surfaces illustrative adjacent opportunities grounded in country context
-- Includes a separate policy dashboard for analysts and program teams
+- Surfaces adjacent opportunities and upskilling paths
+- Includes a policy dashboard with cross-country labor-market signals
 
 ## Who It Is For
 
-- Youth in LMICs with informal or non-traditional work histories
-- NGO workers, facilitators, and employment-support programs
-- Policymakers and analysts who need country-level labor-market signals
+- Youth with informal or non-traditional work histories
+- NGOs, facilitators, and employment-support programs
+- Policymakers and program officers comparing country signals
 
-## Core Product Areas
-
-### Youth Journey
-
-- Guided onboarding
-- Country and language selection
-- Voice-assisted input
-- Follow-up interview generation
-- Skills profile generation
-- AI readiness and opportunity view
-
-### Policy View
-
-- Country comparison dashboard
-- NEET and youth unemployment signals
-- Illustrative occupation risk comparison
-
-## Tech Stack
+## Stack
 
 ### Frontend
 
@@ -61,7 +44,7 @@ This project was built for a hackathon challenge track linked to the World Bank 
 - Groq with `llama-3.3-70b-versatile`
 - ILO ILOSTAT
 - World Bank WDI
-- Embedded ISCO / ESCO / Frey-Osborne reference files
+- Embedded ISCO / ESCO / Frey-Osborne reference data
 
 ## Repository Structure
 
@@ -81,20 +64,25 @@ UNMAPPED/
 |   |-- .env.example
 |   |-- package.json
 |   `-- vite.config.js
-|-- UNMAPPED_agent_prompt.md
+|-- .dockerignore
 |-- .gitignore
-`-- README.md
+|-- Dockerfile
+|-- LICENSE
+|-- README.md
+`-- UNMAPPED_agent_prompt.md
 ```
 
 ## Main API Routes
 
+- `GET /api/countries`
 - `POST /api/interview`
 - `POST /api/profile`
 - `POST /api/readiness`
 - `GET /api/opportunities?country_code=GHA&isco_unit_code=7421`
 - `GET /api/econdata/GHA`
+- `GET /api/policy-dashboard`
 
-## Local Setup On Windows PC
+## Local Setup
 
 ### Prerequisites
 
@@ -103,14 +91,14 @@ UNMAPPED/
 - npm
 - Git
 
-### 1. Clone The Repository
+### 1. Clone
 
 ```powershell
 git clone https://github.com/mak4x13/UNMAPPED.git
 cd UNMAPPED
 ```
 
-### 2. Backend Setup
+### 2. Backend
 
 Create the backend environment file:
 
@@ -118,13 +106,13 @@ Create the backend environment file:
 Copy-Item backend\.env.example backend\.env
 ```
 
-Edit `backend\.env` and set:
+Set the Groq key in `backend\.env`:
 
 ```env
 GROQ_API_KEY=your_actual_groq_api_key
 ```
 
-Create and activate a virtual environment, then install dependencies:
+Create a virtual environment and install dependencies:
 
 ```powershell
 cd backend
@@ -139,22 +127,22 @@ Run the backend:
 uvicorn main:app --reload --port 7860
 ```
 
-### 3. Frontend Setup
+### 3. Frontend
 
-Open a second terminal and create the frontend environment file:
+Open a second terminal:
 
 ```powershell
 cd c:\path\to\UNMAPPED
 Copy-Item frontend\.env.example frontend\.env
 ```
 
-`frontend\.env` should contain:
+Set:
 
 ```env
 VITE_API_BASE_URL=http://localhost:7860
 ```
 
-Install dependencies and run the frontend:
+Install dependencies and run:
 
 ```powershell
 cd frontend
@@ -170,36 +158,126 @@ Open the local Vite URL shown in the terminal, usually:
 http://localhost:5173
 ```
 
-## Suggested Local Demo Flow
+## Demo Flow
 
-1. Open the youth journey
-2. Select a country
-3. Choose platform language and voice-input language
-4. Describe informal work experience
-5. Answer the follow-up interview questions
-6. Generate the profile
-7. Review readiness, risk, and adjacent opportunities
-8. Switch to the policy dashboard
+1. Open the youth journey.
+2. Select a country and language mode.
+3. Enter background details and describe the work in plain language.
+4. Answer follow-up questions.
+5. Generate the profile.
+6. Review readiness, risk, and adjacent opportunities.
+7. Open the policy dashboard for cross-country comparison.
+
+## Dynamic Country System
+
+The app now reads its country list from [backend/data/country_configs.json](/c:/Users/Lenovo/Desktop/UNMAPPED/backend/data/country_configs.json).
+
+To add a new country, add one new top-level entry to that JSON file with this shape:
+
+```json
+"XXX": {
+  "name": "Country Name",
+  "iso2": "XY",
+  "region": "Region Name",
+  "economy_type": "short economy description",
+  "lmic_calibration_factor": 0.65,
+  "calibration_note": "Why this country needs this calibration",
+  "context_note": "Short labor-market context note",
+  "opportunity_types": ["self-employment", "gig", "informal_sme", "training_pathways"],
+  "wittgenstein_secondary_2025": "40%",
+  "wittgenstein_secondary_2035": "56%",
+  "fallback_econdata": {
+    "youth_unemployment": "12.0%",
+    "gdp_per_capita": "$2,000",
+    "secondary_completion": "50.0%"
+  }
+}
+```
+
+After editing the JSON:
+
+- restart the backend, because the file is cached in Python
+- refresh the frontend, because the country list is fetched at app startup
+
+The new country will then appear automatically in:
+
+- `/api/countries`
+- the onboarding country selector
+- the compact country switcher
+- `/api/econdata/{CODE}`
+- the policy dashboard
+
+Locale behavior:
+
+- if the country has no locale-specific entry, the platform falls back to English
+- if the country has no voice-specific entry, voice input falls back to English
 
 ## Deployment
 
-### Backend
+### Frontend On Vercel
 
-The backend is structured for Docker-based deployment, including HuggingFace Spaces.
+Import the GitHub repository into Vercel and set:
 
-### Frontend
+- Framework Preset: `Vite`
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output Directory: `dist`
 
-The frontend is structured for Vercel deployment.
-
-Set:
+Add this environment variable in Vercel:
 
 ```env
-VITE_API_BASE_URL=https://your-backend-url
+VITE_API_BASE_URL=https://your-space-name.hf.space
 ```
 
-## Notes
+Then deploy.
 
-- Speech-to-text support depends on browser/device support
-- Groq calls are real when `GROQ_API_KEY` is configured
-- ILO and World Bank data are live where available, with fallback behavior
-- Opportunity matching is intentionally illustrative
+### Backend On Hugging Face Spaces
+
+This repository now includes a root-level [Dockerfile](/c:/Users/Lenovo/Desktop/UNMAPPED/Dockerfile) for Hugging Face Spaces. It copies only `backend/` into the image, and [.dockerignore](/c:/Users/Lenovo/Desktop/UNMAPPED/.dockerignore) excludes the frontend, Git metadata, caches, and virtual environments to keep the image small.
+
+Recommended Space setup:
+
+- Space SDK: `Docker`
+- Space hardware: `CPU Basic` is enough for the prototype
+- Port exposed by the container: `7860`
+
+Steps:
+
+1. Create a new Docker Space on Hugging Face.
+2. Connect it to this GitHub repository.
+3. Add a Space secret:
+
+```env
+GROQ_API_KEY=your_actual_groq_api_key
+```
+
+4. Let the Space build from the root `Dockerfile`.
+5. After deployment, your backend URL will look like:
+
+```text
+https://your-space-name.hf.space
+```
+
+Then use that URL as `VITE_API_BASE_URL` in Vercel.
+
+### Docker Size Note
+
+The Hugging Face build uses:
+
+- `python:3.11-slim`
+- `pip install --no-cache-dir`
+- a root `.dockerignore` that excludes the frontend and local caches
+- a root `Dockerfile` that copies only `backend/`
+
+With the current dependency set, this should stay comfortably below the 1 GB Hugging Face limit.
+
+## Verification Used In This Repo
+
+- `python -m py_compile backend\main.py backend\routes\countries.py backend\routes\policy.py backend\routes\readiness.py backend\services\data_store.py`
+- `npm run build`
+
+## Known Limits
+
+- Speech-to-text depends on browser and device support.
+- Opportunity matching is illustrative, not a live vacancy engine.
+- The current prototype stores journey state in browser localStorage, not in a backend database.
